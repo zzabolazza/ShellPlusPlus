@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>应用选择器</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: white;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .search-box {
+      width: 100%;
+      padding: 10px 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #f5f5f5;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .app-list {
+      max-height: 70vh;
+      overflow-y: auto;
+      scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none;  /* IE and Edge */
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .app-list::-webkit-scrollbar {
+      display: none;
+    }
+
+    .app-item {
+      padding: 10px 10px;
+      margin-bottom: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .app-item:hover, .app-item.selected {
+      background-color: #f0f0f0;
+    }
+
+    .app-icon {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      border-radius: 6px;
+      margin-right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.05);
+      color: #555;
+      font-weight: bold;
+      font-size: 16px;
+      overflow: hidden;
+    }
+
+    .app-icon img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    .app-name {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .app-url {
+      color: #777;
+      font-size: 12px;
+      flex-grow: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    .form-buttons {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 15px;
+    }
+
+    .form-buttons button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 3px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+
+    .cancel-btn {
+      background-color: #e0e0e0;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <input type="text" class="search-box" id="searchBox" placeholder="搜索应用...">
+    <div class="app-list" id="appList"></div>
+  </div>
+
+  <script>
+    let apps = [];
+    let selectedIndex = 0;
+
+    // 初始化
+    async function init() {
+      // 监听主进程发送的应用列表
+      window.electronAPI.onAppsList((appsList) => {
+        apps = appsList;
+        renderAppList();
+        document.getElementById('searchBox').focus();
+      });
+
+      // 同时也通过API获取应用列表（兼容旧方式）
+      apps = await window.electronAPI.getApps();
+      renderAppList();
+
+      document.getElementById('searchBox').focus();
+    }
+
+    // 提取域名
+    function extractDomain(url) {
+      try {
+        if (!url) return '';
+        // 移除协议
+        let domain = url.replace(/(^\w+:|^)\/\//, '');
+        // 移除路径和查询参数
+        domain = domain.split('/')[0];
+        // 移除端口
+        domain = domain.split(':')[0];
+        return domain;
+      } catch (e) {
+        console.error('提取域名出错:', e);
+        return '';
+      }
+    }
+
+    // 渲染应用列表
+    function renderAppList(filter = '') {
+      const appList = document.getElementById('appList');
+      appList.innerHTML = '';
+
+      const filteredApps = apps.filter(app =>
+        app.name.toLowerCase().includes(filter.toLowerCase()) ||
+        app.url.toLowerCase().includes(filter.toLowerCase())
+      );
+
+      if (filteredApps.length === 0) {
+        const noMatchItem = document.createElement('div');
+        noMatchItem.className = 'app-item';
+        noMatchItem.textContent = '没有匹配的应用';
+        appList.appendChild(noMatchItem);
+        return;
+      }
+
+      filteredApps.forEach((app, index) => {
+        const appItem = document.createElement('div');
+        appItem.className = `app-item ${index === selectedIndex ? 'selected' : ''}`;
+
+        // 创建图标元素
+        const iconElement = document.createElement('div');
+        iconElement.className = 'app-icon';
+
+        // 提取域名用于获取网站图标
+        const domain = extractDomain(app.url);
+
+        if (domain) {
+          // 创建图片元素
+          const img = document.createElement('img');
+          img.src = `https://favicon.im/${domain}`;
+          img.alt = app.name;
+
+          // 图标加载失败时显示首字母
+          img.onerror = () => {
+            img.style.display = 'none';
+            iconElement.textContent = app.name.charAt(0).toUpperCase();
+          };
+
+          iconElement.appendChild(img);
+        } else {
+          // 没有域名时显示应用名首字母
+          iconElement.textContent = app.name.charAt(0).toUpperCase();
+        }
+
+        // 创建应用名和URL元素
+        const nameElement = document.createElement('div');
+        nameElement.className = 'app-name';
+        nameElement.textContent = app.name;
+
+        const urlElement = document.createElement('div');
+        urlElement.className = 'app-url';
+        urlElement.textContent = app.url;
+
+        // 添加所有元素到应用项
+        appItem.appendChild(iconElement);
+        appItem.appendChild(nameElement);
+        appItem.appendChild(urlElement);
+
+        appItem.addEventListener('click', () => {
+          openApp(app.name);
+        });
+
+        appList.appendChild(appItem);
+      });
+
+      // 确保选中项在视图中
+      const selectedItem = appList.querySelector('.selected');
+      if (selectedItem) {
+        selectedItem.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    // 打开应用
+    async function openApp(appName) {
+      await window.electronAPI.openApp(appName);
+    }
+
+    // 搜索框事件
+    document.getElementById('searchBox').addEventListener('input', (e) => {
+      renderAppList(e.target.value);
+      selectedIndex = 0;
+    });
+
+    // 键盘导航
+    document.addEventListener('keydown', (e) => {
+      const appList = document.getElementById('appList');
+      const items = appList.querySelectorAll('.app-item');
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          selectedIndex = (selectedIndex + 1) % items.length;
+          renderAppList(document.getElementById('searchBox').value);
+          break;
+
+        case 'ArrowUp':
+          e.preventDefault();
+          selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+          renderAppList(document.getElementById('searchBox').value);
+          break;
+
+        case 'Enter':
+          e.preventDefault();
+          const selectedApp = items[selectedIndex];
+          if (selectedApp) {
+            const appNameElement = selectedApp.querySelector('.app-name');
+            if (appNameElement) {
+              openApp(appNameElement.textContent);
+            }
+          }
+          break;
+
+        case 'Escape':
+          e.preventDefault();
+          window.electronAPI.closeSelector();
+          break;
+      }
+    });
+
+    // 初始化
+    init();
+  </script>
+</body>
+</html>
+

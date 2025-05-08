@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>应用切换器</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: white;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .switcher-panel {
+      background-color: white;
+      padding: 20px;
+      width: 100%;
+      max-width: 600px;
+      /* Remove border and border-radius as the window already has a border */
+    }
+
+    .app-list {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 15px 0;
+      overflow-x: auto;
+      scrollbar-width: none;  /* Firefox */
+      -ms-overflow-style: none;  /* IE and Edge */
+      position: relative;
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .app-list::-webkit-scrollbar {
+      display: none;
+    }
+
+    .app-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 80px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      opacity: 0.6;
+      position: relative;
+      z-index: 1;
+    }
+
+    .app-item:hover {
+      opacity: 0.9;
+    }
+
+    .app-item.selected {
+      transform: scale(1.15);
+      opacity: 1;
+      z-index: 2;
+    }
+
+    .app-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.05);
+      color: #555;
+      font-weight: bold;
+      font-size: 22px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border: 2px solid transparent;
+    }
+
+    .app-item.selected .app-icon {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+      border-color: #ddd;
+    }
+
+    .app-icon img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+
+    .app-name {
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+
+    .app-item.selected .app-name {
+      font-weight: 600;
+    }
+
+    .app-url {
+      font-size: 10px;
+      color: #777;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .title {
+      font-size: 15px;
+      color: #555;
+      margin-bottom: 15px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .shortcut-hint {
+      position: absolute;
+      bottom: 10px;
+      right: 15px;
+      font-size: 12px;
+      color: #888;
+      opacity: 0.8;
+    }
+
+    /* 动画效果 */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .switcher-panel {
+      animation: fadeIn 0.2s ease-out forwards;
+    }
+
+    @keyframes selectHighlight {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      50% {
+        transform: scale(1.2);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      }
+      100% {
+        transform: scale(1.15);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    .app-item.selected .app-icon {
+      animation: selectHighlight 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    }
+
+    /* 移除底部蓝色指示器 */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="switcher-panel">
+      <div class="title">应用切换器</div>
+      <div class="app-list" id="appList"></div>
+      <div class="shortcut-hint">按住 Alt 键，重复按 T 键切换应用，按 Enter 键确认选择</div>
+    </div>
+  </div>
+
+  <script>
+    let apps = [];
+    let selectedIndex = 0;
+    let prevSelectedIndex = 0;
+    let switchDirection = 'right';
+
+    // 初始化
+    function init() {
+      // 监听主进程发送的应用列表
+      window.electronAPI.onOpenAppsList((data) => {
+        apps = data.apps;
+        selectedIndex = data.selectedIndex;
+        prevSelectedIndex = selectedIndex;
+        renderAppList();
+      });
+
+      // 监听选中应用更新
+      window.electronAPI.onSelectedAppUpdate((index) => {
+        prevSelectedIndex = selectedIndex;
+        selectedIndex = index;
+
+        // 确定切换方向
+        if (selectedIndex > prevSelectedIndex) {
+          switchDirection = 'right';
+        } else if (selectedIndex < prevSelectedIndex) {
+          switchDirection = 'left';
+        } else {
+          // 如果是循环切换（从最后一个到第一个，或从第一个到最后一个）
+          if (prevSelectedIndex === apps.length - 1 && selectedIndex === 0) {
+            switchDirection = 'right';
+          } else if (prevSelectedIndex === 0 && selectedIndex === apps.length - 1) {
+            switchDirection = 'left';
+          }
+        }
+
+        renderAppList();
+      });
+
+      // 监听键盘事件
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          window.electronAPI.closeAppSwitcher();
+        } else if (e.key === 'Enter') {
+          // 按下Enter键立即确认选择
+          window.electronAPI.confirmSelection();
+        } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          // 向右或向下键选择下一个应用
+          e.preventDefault();
+          window.electronAPI.switchToNextApp();
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          // 向左或向上键选择上一个应用
+          e.preventDefault();
+          window.electronAPI.switchToPrevApp();
+        }
+      });
+    }
+
+    // 提取域名
+    function extractDomain(url) {
+      try {
+        if (!url) return '';
+        // 移除协议
+        let domain = url.replace(/(^\w+:|^)\/\//, '');
+        // 移除路径和查询参数
+        domain = domain.split('/')[0];
+        // 移除端口
+        domain = domain.split(':')[0];
+        return domain;
+      } catch (e) {
+        console.error('提取域名出错:', e);
+        return '';
+      }
+    }
+
+    // 渲染应用列表
+    function renderAppList() {
+      const appList = document.getElementById('appList');
+      appList.innerHTML = '';
+
+      if (apps.length === 0) {
+        const noAppsItem = document.createElement('div');
+        noAppsItem.className = 'app-item';
+        noAppsItem.textContent = '没有打开的应用';
+        appList.appendChild(noAppsItem);
+        return;
+      }
+
+      apps.forEach((app, index) => {
+        const appItem = document.createElement('div');
+        appItem.className = `app-item ${index === selectedIndex ? 'selected' : ''}`;
+
+        // 添加动画类
+        if (index === selectedIndex) {
+          appItem.classList.add('animate-select');
+        } else if (
+          (switchDirection === 'right' && index < selectedIndex && index > prevSelectedIndex) ||
+          (switchDirection === 'left' && index > selectedIndex && index < prevSelectedIndex)
+        ) {
+          appItem.classList.add('animate-pass');
+        }
+
+        // 创建图标元素
+        const iconElement = document.createElement('div');
+        iconElement.className = 'app-icon';
+
+        // 提取域名用于获取网站图标
+        const domain = extractDomain(app.url);
+
+        if (domain) {
+          // 创建图片元素
+          const img = document.createElement('img');
+          img.src = `https://favicon.im/${domain}`;
+          img.alt = app.name;
+
+          // 图标加载失败时显示首字母
+          img.onerror = () => {
+            img.style.display = 'none';
+            iconElement.textContent = app.name.charAt(0).toUpperCase();
+          };
+
+          iconElement.appendChild(img);
+        } else {
+          // 没有域名时显示应用名首字母
+          iconElement.textContent = app.name.charAt(0).toUpperCase();
+        }
+
+        // 创建应用名元素
+        const nameElement = document.createElement('div');
+        nameElement.className = 'app-name';
+        nameElement.textContent = app.name;
+
+        // 添加所有元素到应用项
+        appItem.appendChild(iconElement);
+        appItem.appendChild(nameElement);
+
+        // 点击事件
+        appItem.addEventListener('click', () => {
+          window.electronAPI.switchToAppByIndex(index);
+        });
+
+        appList.appendChild(appItem);
+      });
+
+      // 确保选中项在视图中
+      const selectedItem = appList.querySelector('.selected');
+      if (selectedItem) {
+        selectedItem.scrollIntoView({ block: 'nearest', inline: 'center' });
+      }
+    }
+
+    // 初始化
+    init();
+  </script>
+</body>
+</html>

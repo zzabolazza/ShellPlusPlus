@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Shell++</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 主内容区 */
+    .content {
+      flex: 1;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <!-- 主内容区 - 应用内容区域将由BrowserView填充 -->
+  <div class="content"></div>
+
+  <script>
+    // 添加快捷键显示应用选择器
+    document.addEventListener('keydown', (e) => {
+      if (e.altKey && e.key === 'q') {
+        window.electronAPI.showAppSelector();
+      }
+    });
+
+    // 添加调试信息
+    console.log('Main HTML loaded');
+  </script>
+</body>
+</html>
