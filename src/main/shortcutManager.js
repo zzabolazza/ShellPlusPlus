@@ -36,7 +36,7 @@ class ShortcutManager {
           this.isAltKeyDown = false;
           this.appSwitcher.finishAppSwitching();
         }
-      }, 800); // 800毫秒后自动关闭
+      }, 3000); // 3000毫秒后自动关闭
     });
 
     // 监听Alt键释放
