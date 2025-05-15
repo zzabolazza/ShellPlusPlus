@@ -121,25 +121,20 @@ class WindowManager {
   resizeActiveView() {
     if (!this.mainWindow || !this.activeView) return;
 
-    const bounds = this.mainWindow.getBounds();
+    // 获取窗口内容尺寸
+    const contentSize = this.mainWindow.getContentSize();
 
-    // 获取系统窗口框架高度
-    // 在Windows上，标准窗口框架高度通常为32px
-    // 在macOS上，标准窗口框架高度通常为28px
-    // 在Linux上，这取决于窗口管理器，但通常在28-32px之间
-    const frameHeight = 0;
+    // 设置固定的底部边距，解决底部内容被遮挡的问题
+    const bottomMargin = 0; // 根据实际情况调整这个值，如果底部仍被遮挡，可以增加这个值
 
     this.activeView.setBounds({
-      x: 0,
-      y: frameHeight,
-      width: bounds.width,
-      height: bounds.height - frameHeight
+        x: 0,
+        y: 0, // 从内容区顶部开始
+        width: contentSize[0],
+        height: contentSize[1] - bottomMargin
     });
 
-    console.log('Resized active view to:', {
-      width: bounds.width,
-      height: bounds.height - frameHeight
-    });
+    electronLog.info(`调整视图大小为: ${contentSize[0]}x${contentSize[1] - bottomMargin}`);
   }
 
   // 获取所有打开的应用名称
