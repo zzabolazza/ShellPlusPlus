@@ -8,7 +8,7 @@ const AppManager = require('./appManager');
 const WindowManager = require('./windowManager');
 const AppSwitcher = require('./appSwitcher');
 const ShortcutManager = require('./shortcutManager');
-// 不再使用 custom-electron-titlebar
+const MenuManager = require('./menuManager');
 
 // 配置日志
 electronLog.transports.file.level = 'info';
@@ -26,6 +26,7 @@ let appManager;
 let windowManager;
 let appSwitcher;
 let shortcutManager;
+let menuManager;
 
 // 设置IPC处理程序
 function setupIpcHandlers() {
@@ -52,6 +53,10 @@ function setupIpcHandlers() {
   });
 
   // 应用管理 - 确保这些处理程序只在这里注册一次
+  ipcMain.handle('get-apps', () => {
+    return appManager.getApps();
+  });
+
   ipcMain.handle('get-open-apps', () => {
     return windowManager.getOpenApps();
   });
@@ -102,6 +107,9 @@ function initializeApp() {
 
   // 创建主窗口
   windowManager.createMainWindow();
+
+  // 创建应用程序菜单
+  menuManager = new MenuManager(windowManager);
 }
 
 // 应用准备就绪

@@ -66,6 +66,33 @@
       z-index: 1;
     }
 
+    .delete-button {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #ff4444;
+      color: white;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 3;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .delete-button:hover {
+      background-color: #ff6666;
+    }
+
+    .app-item:hover .delete-button {
+      display: flex;
+    }
+
     .app-item:hover {
       opacity: 0.9;
     }
@@ -328,6 +355,20 @@
         // 添加所有元素到应用项
         appItem.appendChild(iconElement);
         appItem.appendChild(nameElement);
+
+        // 添加删除按钮
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete-button';
+        deleteButton.innerHTML = '×';
+        deleteButton.title = '关闭应用';
+        
+        // 删除按钮点击事件
+        deleteButton.addEventListener('click', (e) => {
+          e.stopPropagation(); // 阻止事件冒泡
+          window.electronAPI.closeAppByIndex(index);
+        });
+
+        appItem.appendChild(deleteButton);
 
         // 点击事件
         appItem.addEventListener('click', () => {

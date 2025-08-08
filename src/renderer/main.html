@@ -18,15 +18,313 @@
     /* 主内容区 */
     .content {
       flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+      height: 100vh;
+    }
+
+    /* 快捷键说明容器 */
+    .shortcut-help {
+      display: none;
+      width: 100%;
+      max-width: 800px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      position: relative;
+      height: fit-content;
+    }
+
+    .close-button {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: none;
+      background-color: transparent;
+      color: #495057;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .close-button:hover {
+      background-color: #e9ecef;
+    }
+
+    .shortcut-help.visible {
+      display: block;
+    }
+
+    .shortcut-help h1 {
+      font-size: 24px;
+      margin-bottom: 24px;
+      color: #212529;
+      text-align: center;
+    }
+
+    .shortcut-group {
+      margin-bottom: 32px;
+    }
+
+    .shortcut-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .group-header {
+      font-size: 18px;
+      color: #495057;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+      table-layout: fixed;
+    }
+
+    .shortcut-table th,
+    .shortcut-table td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #dee2e6;
+    }
+
+    .shortcut-table th:first-child,
+    .shortcut-table td:first-child {
+      width: 200px;
+    }
+
+    .shortcut-table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .shortcut-table tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .shortcut {
+      font-family: monospace;
+      padding: 2px 6px;
+      background-color: #e9ecef;
+      border-radius: 4px;
+      color: #495057;
+      font-size: 14px;
+    }
+
+    .note {
+      font-size: 13px;
+      color: #6c757d;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* 应用网格容器 */
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 800px;
+      height: fit-content;
+      align-content: start;
+    }
+
+    /* 应用图标样式 */
+    .app-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .app-item:hover {
+      background-color: #e0e0e0;
+      transform: translateY(-2px);
+    }
+
+    .app-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      background-color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-size: 24px;
+      color: #333;
+    }
+
+    .app-icon img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+    }
+
+    .app-name {
+      font-size: 14px;
+      color: #333;
+      margin-top: 8px;
+      max-width: 100px;
       overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   </style>
 </head>
 <body>
-  <!-- 主内容区 - 应用内容区域将由BrowserView填充 -->
-  <div class="content"></div>
+  <!-- 主内容区 -->
+  <div class="content">
+    <div class="app-grid" id="appGrid"></div>
+    <div class="shortcut-help" id="shortcutHelp">
+      <button class="close-button" onclick="window.electronAPI.toggleShortcutHelp(false)">×</button>
+      <h1>Keyboard Shortcuts</h1>
+      
+      <div class="shortcut-group">
+        <h2 class="group-header">Application Switching</h2>
+        <table class="shortcut-table">
+          <tr>
+            <th>Shortcut</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><span class="shortcut">Alt + Q</span></td>
+            <td>
+              Open application selector
+              <div class="note">Search and open new applications</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="shortcut">Alt + T</span></td>
+            <td>
+              Open application switcher
+              <div class="note">Hold Alt and press T repeatedly to cycle through open applications</div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="shortcut-group">
+        <h2 class="group-header">Application Management</h2>
+        <table class="shortcut-table">
+          <tr>
+            <th>Shortcut</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><span class="shortcut">Alt + W</span></td>
+            <td>
+              Close current application
+              <div class="note">Automatically switches to another application if available</div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="shortcut-group">
+        <h2 class="group-header">View Control</h2>
+        <table class="shortcut-table">
+          <tr>
+            <th>Shortcut</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><span class="shortcut">Ctrl + R</span></td>
+            <td>Refresh current page</td>
+          </tr>
+          <tr>
+            <td><span class="shortcut">Ctrl + Shift + R</span></td>
+            <td>
+              Force refresh current page
+              <div class="note">Reload ignoring cache</div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
 
   <script>
+    // 提取域名函数
+    function extractDomain(url) {
+      try {
+        const urlObj = new URL(url);
+        return urlObj.hostname;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 渲染应用列表
+    async function renderApps() {
+      const apps = await window.electronAPI.getApps();
+      const appGrid = document.getElementById('appGrid');
+      
+      apps.forEach(app => {
+        const appItem = document.createElement('div');
+        appItem.className = 'app-item';
+
+        const iconElement = document.createElement('div');
+        iconElement.className = 'app-icon';
+
+        const domain = extractDomain(app.url);
+        
+        if (domain) {
+          const img = document.createElement('img');
+          img.src = `https://favicon.im/${domain}`;
+          img.alt = app.name;
+
+          img.onerror = () => {
+            img.style.display = 'none';
+            iconElement.textContent = app.name.charAt(0).toUpperCase();
+          };
+
+          iconElement.appendChild(img);
+        } else {
+          iconElement.textContent = app.name.charAt(0).toUpperCase();
+        }
+
+        const nameElement = document.createElement('div');
+        nameElement.className = 'app-name';
+        nameElement.textContent = app.name;
+
+        appItem.appendChild(iconElement);
+        appItem.appendChild(nameElement);
+
+        // 点击事件
+        appItem.addEventListener('click', () => {
+          window.electronAPI.switchToApp(app.name);
+        });
+
+        appGrid.appendChild(appItem);
+      });
+    }
+
+    // 页面加载完成后渲染应用列表
+    document.addEventListener('DOMContentLoaded', renderApps);
+
     // 添加快捷键显示应用选择器
     document.addEventListener('keydown', (e) => {
       if (e.altKey && e.key === 'q') {
@@ -34,7 +332,27 @@
       }
     });
 
-    // 添加调试信息
+    // 监听应用列表变化
+    window.electronAPI.onAppsChanged(() => {
+      const appGrid = document.getElementById('appGrid');
+      appGrid.innerHTML = ''; // 清空现有内容
+      renderApps(); // 重新渲染
+    });
+
+    // 处理快捷键说明的显示/隐藏
+    window.electronAPI.onToggleShortcutHelp((show) => {
+      const appGrid = document.getElementById('appGrid');
+      const shortcutHelp = document.getElementById('shortcutHelp');
+      
+      if (show) {
+        appGrid.style.display = 'none';
+        shortcutHelp.classList.add('visible');
+      } else {
+        appGrid.style.display = 'grid';
+        shortcutHelp.classList.remove('visible');
+      }
+    });
+
     console.log('Main HTML loaded');
   </script>
 </body>

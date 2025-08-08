@@ -35,6 +35,7 @@ class AppManager {
       { name: "wps", url: "https://copilot.wps.cn/" },
       { name: "huggingface", url: "https://huggingface.co/chat/" },
       { name: "openrouter", url: "https://openrouter.ai/" },
+      { name: "youware", url: "https://www.youware.com/" },
     ];
   }
 

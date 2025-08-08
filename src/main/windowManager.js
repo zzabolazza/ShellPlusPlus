@@ -192,6 +192,28 @@ class WindowManager {
     electronLog.info(`已关闭应用: ${name}`);
   }
 
+  // 关闭当前活跃的视图
+  closeActiveView() {
+    if (!this.activeView) return;
+
+    // 找到当前活跃视图的名称
+    let activeName = null;
+    for (const [name, view] of this.views.entries()) {
+      if (view === this.activeView) {
+        activeName = name;
+        break;
+      }
+    }
+
+    if (activeName) {
+      this.closeApp(activeName);
+      electronLog.info('已关闭当前活跃视图');
+      return true;
+    }
+
+    return false;
+  }
+
   // 关闭所有应用
   closeAllApps() {
     for (const [name, view] of this.views.entries()) {

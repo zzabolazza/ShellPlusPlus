@@ -16,10 +16,6 @@ class AppSwitcher {
 
   // 设置IPC处理程序 - 只注册应用选择器相关的处理程序
   setupIpcHandlers() {
-    // 获取所有应用（包括系统应用和用户应用）
-    ipcMain.handle('get-apps', () => {
-      return this.appManager.getApps();
-    });
 
     // 从选择器打开应用
     ipcMain.handle('open-app', (event, appName) => {
@@ -93,6 +89,38 @@ class AppSwitcher {
         this.updateSelectedApp();
       }
       return true;
+    });
+
+    // 关闭指定索引的应用
+    ipcMain.handle('close-app-by-index', (event, index) => {
+      const openApps = this.windowManager.getOpenApps();
+      if (index >= 0 && index < openApps.length) {
+        const appName = openApps[index];
+        this.windowManager.closeApp(appName);
+
+        // 更新应用列表和选中索引
+        const newOpenApps = this.windowManager.getOpenApps();
+        if (newOpenApps.length === 0) {
+          // 如果没有应用了，关闭切换器
+          this.closeAppSwitcher();
+        } else {
+          // 调整选中索引
+          if (this.selectedAppIndex >= newOpenApps.length) {
+            this.selectedAppIndex = newOpenApps.length - 1;
+          }
+          // 重新发送应用列表
+          const apps = newOpenApps.map(appName => {
+            const app = this.appManager.getApps().find(a => a.name === appName);
+            return app || { name: appName, url: '' };
+          });
+          this.switcherWindow.webContents.send('open-apps-list', {
+            apps,
+            selectedIndex: this.selectedAppIndex
+          });
+        }
+        return true;
+      }
+      return false;
     });
   }
 

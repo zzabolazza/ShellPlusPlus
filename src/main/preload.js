@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeWindow: () => ipcRenderer.send('close-window'),
 
   // 应用管理
+  getApps: () => ipcRenderer.invoke('get-apps'),
   getOpenApps: () => ipcRenderer.invoke('get-open-apps'),
   switchToApp: (appName) => ipcRenderer.invoke('switch-to-app', appName),
   closeApp: (appName) => ipcRenderer.invoke('close-app', appName),
@@ -19,6 +20,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onAppsChanged: (callback) => {
     ipcRenderer.on('apps-changed', () => callback());
+  },
+  onToggleShortcutHelp: (callback) => {
+    ipcRenderer.on('toggle-shortcut-help', (_, show) => callback(show));
+  },
+  toggleShortcutHelp: (show) => {
+    ipcRenderer.invoke('toggle-shortcut-help', show);
   }
 });
 

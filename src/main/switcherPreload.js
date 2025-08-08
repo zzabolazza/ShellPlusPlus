@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 切换到上一个应用
   switchToPrevApp: () => ipcRenderer.invoke('switch-to-prev-app'),
 
+  // 关闭指定索引的应用
+  closeAppByIndex: (index) => ipcRenderer.invoke('close-app-by-index', index),
+
   // 监听打开的应用列表更新
   onOpenAppsList: (callback) => {
     ipcRenderer.on('open-apps-list', (event, data) => {

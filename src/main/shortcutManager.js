@@ -18,6 +18,11 @@ class ShortcutManager {
       this.appSwitcher.showAppSelector();
     });
 
+    this.registerShortcut('Alt+W', () => {
+      electronLog.info('Alt+W pressed - Closing active view');
+      this.windowManager.closeActiveView();
+    });
+
     this.registerShortcut('Alt+T', () => {
       electronLog.info('Alt+T pressed - Switching between open apps');
       this.appSwitcher.switchToNextApp();
