@@ -30,7 +30,8 @@ class WindowManager {
       },
       title: 'Shell++',
       frame: true, // 使用系统标准窗口框架
-      icon: path.join(__dirname, '../assets/icons/icon.png')
+      icon: path.join(__dirname, '../assets/icons/icon.png'),
+      backgroundColor: '#f5f5f5' // 设置主窗口背景色，与main.html的body背景色一致
     });
 
     // 增加最大监听器数量，避免内存泄漏警告
@@ -84,6 +85,20 @@ class WindowManager {
         contextIsolation: true,
         sandbox: true
       }
+    });
+
+    // 设置默认背景色，避免透明背景
+    // 使用多种方法确保背景色生效
+    view.setBackgroundColor('#ffffff');
+    
+    view.webContents.once('dom-ready', () => {
+      view.webContents.insertCSS(`
+        html, body {
+          background-color: #ffffff !important;
+          margin: 0;
+          padding: 0;
+        }
+      `);
     });
 
     // 加载URL
