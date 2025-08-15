@@ -8,6 +8,7 @@ class WindowManager {
     this.mainWindow = null;
     this.views = new Map(); // 存储所有打开的视图
     this.activeView = null; // 当前活跃视图
+    this.minimizedViews = new Set(); // 存储最小化的视图
   }
 
   // 创建主窗口
@@ -106,6 +107,12 @@ class WindowManager {
       this.mainWindow.removeBrowserView(this.activeView);
     }
 
+    // 如果要激活的视图是最小化状态，将其从最小化状态中移除
+    if (this.minimizedViews.has(name)) {
+      this.minimizedViews.delete(name);
+      electronLog.info(`已将视图 ${name} 从最小化状态中恢复`);
+    }
+
     // 设置新的活跃视图
     this.mainWindow.addBrowserView(view);
     this.activeView = view;
@@ -139,7 +146,16 @@ class WindowManager {
 
   // 获取所有打开的应用名称
   getOpenApps() {
+    // 返回所有应用，包括最小化的
     return Array.from(this.views.keys());
+  }
+
+  // 获取应用的状态信息
+  getAppStatus(appName) {
+    return {
+      isMinimized: this.minimizedViews.has(appName),
+      isActive: this.views.get(appName) === this.activeView
+    };
   }
 
   // 切换到下一个应用
@@ -225,8 +241,88 @@ class WindowManager {
 
     this.views.clear();
     this.activeView = null;
+    this.minimizedViews.clear();
 
     electronLog.info('已关闭所有应用');
+  }
+
+  // 最小化当前活跃视图
+  minimizeActiveView() {
+    if (!this.activeView) {
+      return false;
+    }
+
+    // 获取当前活跃视图的名称
+    let currentAppName = null;
+    let currentIndex = -1;
+    const allApps = Array.from(this.views.keys());
+    
+    for (let i = 0; i < allApps.length; i++) {
+      if (this.views.get(allApps[i]) === this.activeView) {
+        currentAppName = allApps[i];
+        currentIndex = i;
+        break;
+      }
+    }
+
+    // 从主窗口移除视图并标记为最小化
+    this.mainWindow.removeBrowserView(this.activeView);
+    this.minimizedViews.add(currentAppName);
+    this.activeView = null;
+
+    // 从当前位置开始，寻找下一个未最小化的视图
+    for (let i = 1; i < allApps.length; i++) {
+      const nextIndex = (currentIndex + i) % allApps.length;
+      const nextAppName = allApps[nextIndex];
+      
+      if (!this.minimizedViews.has(nextAppName)) {
+        const nextView = this.views.get(nextAppName);
+        this.activateView(nextAppName, nextView);
+        electronLog.info(`已最小化 ${currentAppName} 并切换到下一个未最小化的视图 ${nextAppName}`);
+        return true;
+      }
+    }
+
+    // 如果所有视图都已最小化，显示主窗口
+    if (this.mainWindow) {
+      this.mainWindow.focus();
+      electronLog.info(`已最小化 ${currentAppName}，所有视图已最小化，显示主窗口`);
+    }
+
+    return true;
+  }
+
+  // 恢复最小化的视图
+  restoreMinimizedView() {
+    // 如果没有最小化的视图，返回false
+    if (this.minimizedViews.size === 0) {
+      return false;
+    }
+
+    // 获取第一个最小化的视图
+    const minimizedViewName = Array.from(this.minimizedViews)[0];
+    const view = this.views.get(minimizedViewName);
+
+    if (view) {
+      // 从最小化集合中移除
+      this.minimizedViews.delete(minimizedViewName);
+      // 激活视图
+      this.activateView(minimizedViewName, view);
+      electronLog.info(`已恢复最小化视图: ${minimizedViewName}`);
+      return true;
+    }
+
+    return false;
+  }
+
+  // 刷新当前活跃视图
+  refreshActiveView() {
+    if (this.activeView) {
+      this.activeView.webContents.reload();
+      electronLog.info('已刷新当前视图');
+      return true;
+    }
+    return false;
   }
 }
 

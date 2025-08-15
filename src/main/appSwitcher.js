@@ -297,6 +297,18 @@ class AppSwitcher {
       // 已经显示切换器，切换到下一个应用
       const openApps = this.windowManager.getOpenApps();
       if (openApps.length > 1) {
+        // 获取当前选中应用的状态
+        const currentAppName = openApps[this.selectedAppIndex];
+        const currentStatus = this.windowManager.getAppStatus(currentAppName);
+
+        // 如果当前应用是最小化的，恢复它
+        if (currentStatus.isMinimized) {
+          // 从最小化集合中移除
+          this.windowManager.restoreMinimizedView();
+          return;
+        }
+
+        // 否则切换到下一个应用
         this.selectedAppIndex = (this.selectedAppIndex + 1) % openApps.length;
         this.updateSelectedApp();
       }

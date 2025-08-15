@@ -26,24 +26,6 @@ class MenuManager {
         label: 'View',
         submenu: [
           {
-            label: 'Reload',
-            click: () => {
-              const view = this.windowManager.activeView;
-              if (view) {
-                view.webContents.reload();
-              }
-            }
-          },
-          {
-            label: 'Force Reload',
-            click: () => {
-              const view = this.windowManager.activeView;
-              if (view) {
-                view.webContents.reloadIgnoringCache();
-              }
-            }
-          },
-          {
             label: 'Toggle Developer Tools',
             click: () => {
               const view = this.windowManager.activeView;

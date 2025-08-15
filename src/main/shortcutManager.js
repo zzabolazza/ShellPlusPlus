@@ -23,6 +23,19 @@ class ShortcutManager {
       this.windowManager.closeActiveView();
     });
 
+    this.registerShortcut('Alt+Z', () => {
+      electronLog.info('Alt+Z pressed - Minimizing current view');
+      // 最小化当前活跃视图
+      // 如果还有未最小化的窗口，切换到下一个未最小化的窗口
+      // 如果所有窗口都最小化了，显示主窗口
+      this.windowManager.minimizeActiveView();
+    });
+
+    this.registerShortcut('Alt+R', () => {
+      electronLog.info('Alt+R pressed - Refreshing current view');
+      this.windowManager.refreshActiveView();
+    });
+
     this.registerShortcut('Alt+T', () => {
       electronLog.info('Alt+T pressed - Switching between open apps');
       this.appSwitcher.switchToNextApp();
