@@ -27,9 +27,24 @@ let windowManager;
 let appSwitcher;
 let shortcutManager;
 let menuManager;
+let isInitialized = false;
 
 // 设置IPC处理程序
 function setupIpcHandlers() {
+  // 移除现有的处理程序以避免重复注册
+  ipcMain.removeAllListeners('minimize-window');
+  ipcMain.removeAllListeners('toggle-maximize-window');
+  ipcMain.removeAllListeners('close-window');
+  ipcMain.removeHandler('get-apps');
+  ipcMain.removeHandler('get-open-apps');
+  ipcMain.removeHandler('switch-to-app');
+  ipcMain.removeHandler('close-app');
+  ipcMain.removeHandler('show-app-selector');
+  ipcMain.removeHandler('add-app');
+  ipcMain.removeHandler('remove-app');
+  ipcMain.removeHandler('update-app');
+  ipcMain.removeHandler('get-current-app-name');
+
   // 窗口控制
   ipcMain.on('minimize-window', () => {
     const mainWindow = windowManager.mainWindow;
@@ -80,6 +95,46 @@ function setupIpcHandlers() {
     return true;
   });
 
+  // 应用管理 - 添加和删除应用
+  ipcMain.handle('add-app', (_, app) => {
+    try {
+      appManager.addApp(app);
+      // 通知所有窗口应用列表已更改
+      windowManager.mainWindow?.webContents.send('apps-changed');
+      return { success: true };
+    } catch (error) {
+      electronLog.error('添加应用失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('remove-app', (_, appName) => {
+    try {
+      // 先关闭应用（如果已打开）
+      windowManager.closeApp(appName);
+      // 然后从列表中删除
+      appManager.removeApp(appName);
+      // 通知所有窗口应用列表已更改
+      windowManager.mainWindow?.webContents.send('apps-changed');
+      return { success: true };
+    } catch (error) {
+      electronLog.error('删除应用失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('update-app', (_, appName, newApp) => {
+    try {
+      appManager.updateApp(appName, newApp);
+      // 通知所有窗口应用列表已更改
+      windowManager.mainWindow?.webContents.send('apps-changed');
+      return { success: true };
+    } catch (error) {
+      electronLog.error('更新应用失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 视图API
   ipcMain.handle('get-current-app-name', (event) => {
     // 查找发送请求的视图对应的应用名称
@@ -94,6 +149,13 @@ function setupIpcHandlers() {
 
 // 初始化应用
 function initializeApp() {
+  if (isInitialized) {
+    electronLog.info('应用已经初始化，跳过重复初始化');
+    return;
+  }
+
+  electronLog.info('开始初始化应用');
+  
   appManager = new AppManager();
   windowManager = new WindowManager();
   appSwitcher = new AppSwitcher(appManager, windowManager);
@@ -110,6 +172,9 @@ function initializeApp() {
 
   // 创建应用程序菜单
   menuManager = new MenuManager(windowManager);
+
+  isInitialized = true;
+  electronLog.info('应用初始化完成');
 }
 
 // 应用准备就绪

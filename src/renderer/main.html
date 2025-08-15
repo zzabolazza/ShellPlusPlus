@@ -192,6 +192,164 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
+    /* 删除按钮样式 */
+    .delete-button {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      line-height: 1;
+      z-index: 10;
+    }
+
+    .app-item {
+      position: relative;
+    }
+
+    .app-item:hover .delete-button {
+      display: flex;
+    }
+
+    .delete-button:hover {
+      background-color: #c82333;
+    }
+
+    /* 添加应用按钮样式 */
+    .add-app-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      background-color: transparent;
+      min-height: 98px; /* 与其他应用项高度保持一致 */
+    }
+
+    .add-app-item:hover {
+      background-color: #e0e0e0;
+      transform: translateY(-2px);
+    }
+
+    .add-app-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      background-color: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #adb5bd;
+      font-size: 32px;
+      font-weight: 300;
+    }
+
+    /* 添加应用表单样式 */
+    .add-app-form {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .add-app-form.visible {
+      display: flex;
+    }
+
+    .form-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 4px 20px rgba(214, 213, 213, 0.15);
+    }
+
+    .form-title {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #333;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .form-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .form-button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+
+    .form-button.primary {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .form-button.primary:hover {
+      background-color: #0056b3;
+    }
+
+    .form-button.secondary {
+      background-color: #6c757d;
+      color: white;
+    }
+
+    .form-button.secondary:hover {
+      background-color: #545b62;
+    }
   </style>
 </head>
 <body>
@@ -254,7 +412,35 @@
               <div class="note">Reload the current page</div>
             </td>
           </tr>
+          <tr>
+            <td><span class="shortcut">Alt + D</span></td>
+            <td>
+              Toggle Developer Tools
+              <div class="note">Open/close developer tools for current application</div>
+            </td>
+          </tr>
         </table>
+      </div>
+    </div>
+
+    <!-- 添加应用表单 -->
+    <div class="add-app-form" id="addAppForm">
+      <div class="form-content">
+        <h2 class="form-title">添加新应用</h2>
+        <form id="appForm">
+          <div class="form-group">
+            <label for="appName">应用名称:</label>
+            <input type="text" id="appName" name="name" required placeholder="例如: ChatGPT">
+          </div>
+          <div class="form-group">
+            <label for="appUrl">应用网址:</label>
+            <input type="url" id="appUrl" name="url" required placeholder="例如: https://chatgpt.com/">
+          </div>
+          <div class="form-buttons">
+            <button type="button" class="form-button secondary" onclick="hideAddAppForm()">取消</button>
+            <button type="submit" class="form-button primary">添加</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -278,6 +464,15 @@
       apps.forEach(app => {
         const appItem = document.createElement('div');
         appItem.className = 'app-item';
+
+        // 删除按钮
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete-button';
+        deleteButton.innerHTML = '×';
+        deleteButton.onclick = (e) => {
+          e.stopPropagation();
+          deleteApp(app.name);
+        };
 
         const iconElement = document.createElement('div');
         iconElement.className = 'app-icon';
@@ -303,6 +498,7 @@
         nameElement.className = 'app-name';
         nameElement.textContent = app.name;
 
+        appItem.appendChild(deleteButton);
         appItem.appendChild(iconElement);
         appItem.appendChild(nameElement);
 
@@ -313,15 +509,132 @@
 
         appGrid.appendChild(appItem);
       });
+
+      // 添加"添加应用"按钮
+      const addAppItem = document.createElement('div');
+      addAppItem.className = 'add-app-item';
+
+      const addIcon = document.createElement('div');
+      addIcon.className = 'add-app-icon';
+      addIcon.textContent = '+';
+
+      addAppItem.appendChild(addIcon);
+
+      // 点击事件
+      addAppItem.addEventListener('click', showAddAppForm);
+
+      appGrid.appendChild(addAppItem);
+    }
+
+    // 显示添加应用表单
+    function showAddAppForm() {
+      const form = document.getElementById('addAppForm');
+      form.classList.add('visible');
+      // 清空表单
+      document.getElementById('appName').value = '';
+      document.getElementById('appUrl').value = '';
+      // 聚焦到名称输入框
+      setTimeout(() => {
+        document.getElementById('appName').focus();
+      }, 100);
+    }
+
+    // 隐藏添加应用表单
+    function hideAddAppForm() {
+      const form = document.getElementById('addAppForm');
+      form.classList.remove('visible');
+    }
+
+    // 删除应用
+    async function deleteApp(appName) {
+      if (confirm(`确定要删除应用 "${appName}" 吗？`)) {
+        try {
+          const result = await window.electronAPI.removeApp(appName);
+          if (result.success) {
+            console.log('应用删除成功:', appName);
+            // 应用列表会通过 onAppsChanged 事件自动刷新
+          } else {
+            alert('删除应用失败: ' + (result.error || '未知错误'));
+          }
+        } catch (error) {
+          console.error('删除应用时出错:', error);
+          alert('删除应用时出错: ' + error.message);
+        }
+      }
+    }
+
+    // 添加应用
+    async function addApp(app) {
+      try {
+        const result = await window.electronAPI.addApp(app);
+        if (result.success) {
+          console.log('应用添加成功:', app.name);
+          hideAddAppForm();
+          // 应用列表会通过 onAppsChanged 事件自动刷新
+        } else {
+          alert('添加应用失败: ' + (result.error || '未知错误'));
+        }
+      } catch (error) {
+        console.error('添加应用时出错:', error);
+        alert('添加应用时出错: ' + error.message);
+      }
     }
 
     // 页面加载完成后渲染应用列表
     document.addEventListener('DOMContentLoaded', renderApps);
 
-    // 添加快捷键显示应用选择器
+    // 表单提交处理
+    document.getElementById('appForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const app = {
+        name: formData.get('name').trim(),
+        url: formData.get('url').trim()
+      };
+
+      if (!app.name || !app.url) {
+        alert('请填写完整的应用信息');
+        return;
+      }
+
+      // 验证URL格式
+      try {
+        new URL(app.url);
+      } catch (error) {
+        alert('请输入有效的网址');
+        return;
+      }
+
+      // 检查应用名称是否已存在
+      const existingApps = await window.electronAPI.getApps();
+      if (existingApps.some(existingApp => existingApp.name.toLowerCase() === app.name.toLowerCase())) {
+        alert('应用名称已存在，请使用其他名称');
+        return;
+      }
+
+      await addApp(app);
+    });
+
+    // 点击表单背景关闭表单
+    document.getElementById('addAppForm').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        hideAddAppForm();
+      }
+    });
+
+    // 键盘事件处理
     document.addEventListener('keydown', (e) => {
+      // 显示应用选择器
       if (e.altKey && e.key === 'q') {
         window.electronAPI.showAppSelector();
+      }
+      
+      // ESC键关闭添加应用表单
+      if (e.key === 'Escape') {
+        const form = document.getElementById('addAppForm');
+        if (form.classList.contains('visible')) {
+          hideAddAppForm();
+        }
       }
     });
 

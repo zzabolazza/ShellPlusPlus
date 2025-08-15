@@ -16,6 +16,16 @@ class AppSwitcher {
 
   // 设置IPC处理程序 - 只注册应用选择器相关的处理程序
   setupIpcHandlers() {
+    // 移除现有的处理程序以避免重复注册
+    ipcMain.removeHandler('open-app');
+    ipcMain.removeHandler('close-selector');
+    ipcMain.removeHandler('get-open-apps-with-details');
+    ipcMain.removeHandler('switch-to-app-by-index');
+    ipcMain.removeHandler('close-app-switcher');
+    ipcMain.removeHandler('confirm-app-selection');
+    ipcMain.removeHandler('switch-to-next-app');
+    ipcMain.removeHandler('switch-to-prev-app');
+    ipcMain.removeHandler('close-app-by-index');
 
     // 从选择器打开应用
     ipcMain.handle('open-app', (event, appName) => {
@@ -28,15 +38,7 @@ class AppSwitcher {
       return { success: false, error: '找不到应用' };
     });
 
-    // 添加新应用
-    ipcMain.handle('add-app', (event, { name, url }) => {
-      const success = this.appManager.addApp(name, url);
-      if (success) {
-        this.closeAppSelector();
-        return { success: true };
-      }
-      return { success: false, error: '应用名称已存在' };
-    });
+    // 注意：add-app 处理程序已移到 index.js 中统一管理
 
     // 关闭选择器
     ipcMain.handle('close-selector', () => {
@@ -202,8 +204,8 @@ class AppSwitcher {
 
     // 获取当前打开的应用
     const openApps = this.windowManager.getOpenApps();
-    if (openApps.length <= 1) {
-      // 如果只有一个或没有应用，则不显示切换器
+    if (openApps.length === 0) {
+      // 如果没有应用，则不显示切换器
       return;
     }
 
@@ -296,7 +298,7 @@ class AppSwitcher {
     } else if (this.switcherWindow && !this.switcherWindow.isDestroyed()) {
       // 已经显示切换器，切换到下一个应用
       const openApps = this.windowManager.getOpenApps();
-      if (openApps.length > 1) {
+      if (openApps.length > 0) {
         // 获取当前选中应用的状态
         const currentAppName = openApps[this.selectedAppIndex];
         const currentStatus = this.windowManager.getAppStatus(currentAppName);
@@ -308,9 +310,12 @@ class AppSwitcher {
           return;
         }
 
-        // 否则切换到下一个应用
-        this.selectedAppIndex = (this.selectedAppIndex + 1) % openApps.length;
-        this.updateSelectedApp();
+        // 如果有多个应用，切换到下一个应用
+        if (openApps.length > 1) {
+          this.selectedAppIndex = (this.selectedAppIndex + 1) % openApps.length;
+          this.updateSelectedApp();
+        }
+        // 如果只有一个应用，保持当前选中状态即可
       }
     }
   }

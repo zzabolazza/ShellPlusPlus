@@ -23,28 +23,6 @@ class MenuManager {
   createMenu() {
     const template = [
       {
-        label: 'View',
-        submenu: [
-          {
-            label: 'Toggle Developer Tools',
-            click: () => {
-              const view = this.windowManager.activeView;
-              if (view) {
-                view.webContents.toggleDevTools();
-              }
-            }
-          }
-        ]
-      },
-      {
-        label: 'Window',
-        submenu: [
-          { role: 'minimize' },
-          { type: 'separator' },
-          { role: 'close' }
-        ]
-      },
-      {
         label: 'Help',
         submenu: [
           {

@@ -36,6 +36,16 @@ class ShortcutManager {
       this.windowManager.refreshActiveView();
     });
 
+    this.registerShortcut('Alt+D', () => {
+      electronLog.info('Alt+D pressed - Toggling Developer Tools');
+      const activeView = this.windowManager.activeView;
+      if (activeView) {
+        activeView.webContents.toggleDevTools();
+      } else if (this.windowManager.mainWindow) {
+        this.windowManager.mainWindow.webContents.toggleDevTools();
+      }
+    });
+
     this.registerShortcut('Alt+T', () => {
       electronLog.info('Alt+T pressed - Switching between open apps');
       this.appSwitcher.switchToNextApp();
