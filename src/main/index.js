@@ -9,6 +9,7 @@ const WindowManager = require('./windowManager');
 const AppSwitcher = require('./appSwitcher');
 const ShortcutManager = require('./shortcutManager');
 const MenuManager = require('./menuManager');
+const ConfigManager = require('./configManager');
 
 // 配置日志
 electronLog.transports.file.level = 'info';
@@ -27,6 +28,7 @@ let windowManager;
 let appSwitcher;
 let shortcutManager;
 let menuManager;
+let configManager;
 let isInitialized = false;
 
 // 设置IPC处理程序
@@ -156,6 +158,9 @@ function initializeApp() {
 
   electronLog.info('开始初始化应用');
   
+  // 首先初始化配置管理器
+  configManager = new ConfigManager();
+  
   appManager = new AppManager();
   windowManager = new WindowManager();
   appSwitcher = new AppSwitcher(appManager, windowManager);
@@ -172,6 +177,11 @@ function initializeApp() {
 
   // 创建应用程序菜单
   menuManager = new MenuManager(windowManager);
+
+  // 初始化配置
+  configManager.initialize();
+
+  // 配置管理器已集成到主窗口，无需独立窗口
 
   isInitialized = true;
   electronLog.info('应用初始化完成');

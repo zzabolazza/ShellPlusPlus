@@ -40,6 +40,19 @@
       height: fit-content;
     }
 
+    /* 配置界面容器 */
+    .config-panel {
+      display: none;
+      width: 100%;
+      max-width: 800px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      position: relative;
+      height: fit-content;
+    }
+
     .close-button {
       position: absolute;
       top: 16px;
@@ -64,6 +77,10 @@
     }
 
     .shortcut-help.visible {
+      display: block;
+    }
+
+    .config-panel.visible {
       display: block;
     }
 
@@ -350,6 +367,261 @@
     .form-button.secondary:hover {
       background-color: #545b62;
     }
+
+    /* 配置界面样式 */
+    .config-panel h1 {
+      font-size: 24px;
+      margin-bottom: 24px;
+      color: #212529;
+      text-align: center;
+    }
+
+    .config-section {
+      margin-bottom: 32px;
+    }
+
+    .config-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .config-section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #495057;
+      margin: 0 0 20px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    .config-form-group {
+      margin-bottom: 20px;
+    }
+
+    .config-form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .config-form-label {
+      display: block;
+      font-weight: 500;
+      color: #495057;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .config-form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      box-sizing: border-box;
+    }
+
+    .config-form-input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .config-form-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 14px;
+      background-color: #ffffff;
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .config-form-select:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .config-form-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .config-form-checkbox input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #007bff;
+    }
+
+    .config-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .config-form-help {
+      font-size: 12px;
+      color: #6c757d;
+      margin-top: 4px;
+    }
+
+    .config-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      text-align: center;
+      display: inline-block;
+      text-decoration: none;
+    }
+
+    .config-btn-primary {
+      background-color: #007bff;
+      color: #ffffff;
+    }
+
+    .config-btn-primary:hover {
+      background-color: #0056b3;
+    }
+
+    .config-btn-secondary {
+      background-color: #6c757d;
+      color: #ffffff;
+    }
+
+    .config-btn-secondary:hover {
+      background-color: #545b62;
+    }
+
+    .config-btn-success {
+      background-color: #28a745;
+      color: #ffffff;
+    }
+
+    .config-btn-success:hover {
+      background-color: #1e7e34;
+    }
+
+    .config-btn-warning {
+      background-color: #ffc107;
+      color: #212529;
+    }
+
+    .config-btn-warning:hover {
+      background-color: #e0a800;
+    }
+
+    .config-btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .config-btn-group {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .config-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .config-status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .config-status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .config-status.testing {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .config-status-icon {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .config-status-icon.success {
+      background-color: #28a745;
+    }
+
+    .config-status-icon.error {
+      background-color: #dc3545;
+    }
+
+    .config-status-icon.testing {
+      background-color: #17a2b8;
+      animation: pulse 1.5s infinite;
+    }
+
+    .config-disabled {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .config-tab-container {
+      margin-bottom: 20px;
+    }
+
+    .config-tab-nav {
+      display: flex;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .config-tab-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border: none;
+      background-color: transparent;
+      color: #495057;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.15s ease-in-out;
+      border-bottom: 3px solid transparent;
+    }
+
+    .config-tab-btn:hover {
+      background-color: #e9ecef;
+    }
+
+    .config-tab-btn.active {
+      background-color: #ffffff;
+      color: #007bff;
+      border-bottom-color: #007bff;
+    }
+
+    .config-tab-content {
+      display: none;
+    }
+
+    .config-tab-content.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -420,6 +692,109 @@
             </td>
           </tr>
         </table>
+      </div>
+    </div>
+
+    <!-- 配置界面 -->
+    <div class="config-panel" id="configPanel">
+      <button class="close-button" onclick="hideConfigPanel()">×</button>
+      <h1>Shell++ 设置</h1>
+      
+      <div class="config-tab-container">
+        <!-- 只有一个标签页时隐藏标签导航 -->
+        <div class="config-tab-nav" style="display: none;">
+          <button class="config-tab-btn active" onclick="switchConfigTab('proxy', event)">网络代理</button>
+        </div>
+      </div>
+
+      <!-- 网络代理设置 -->
+      <div id="config-proxy-tab" class="config-tab-content active">
+        <div class="config-section">
+          <h2 class="config-section-title">网络代理设置</h2>
+          
+          <div class="config-form-group">
+            <div class="config-form-checkbox">
+              <input type="checkbox" id="configProxyEnabled" onchange="toggleConfigProxySettings()">
+              <label for="configProxyEnabled" class="config-form-label">启用代理</label>
+            </div>
+            <div class="config-form-help">启用后，所有网络请求将通过指定的代理服务器</div>
+          </div>
+
+          <div id="configProxySettings" class="config-disabled">
+            <div class="config-form-group">
+              <label for="configProxyType" class="config-form-label">代理类型</label>
+              <select id="configProxyType" class="config-form-select">
+                <option value="socks5">SOCKS5 (推荐，兼容性最好)</option>
+                <option value="http">HTTP (适用于HTTP代理)</option>
+                <option value="https">HTTPS (适用于HTTPS代理)</option>
+                <option value="socks4">SOCKS4 (较老的协议)</option>
+              </select>
+              <div class="config-form-help">
+                <strong>如果遇到协议错误，建议优先尝试SOCKS5</strong><br>
+                • SOCKS5: 支持所有协议，兼容性最好<br>
+                • HTTP: 仅支持HTTP请求和HTTPS CONNECT<br>
+                • 大多数代理软件默认提供SOCKS5端口
+              </div>
+            </div>
+
+            <div class="config-form-row">
+              <div class="config-form-group">
+                <label for="configProxyHost" class="config-form-label">主机地址</label>
+                <input type="text" id="configProxyHost" class="config-form-input" placeholder="例如: 127.0.0.1">
+              </div>
+              <div class="config-form-group">
+                <label for="configProxyPort" class="config-form-label">端口</label>
+                <input type="number" id="configProxyPort" class="config-form-input" placeholder="例如: 1080" min="1" max="65535">
+              </div>
+            </div>
+
+            <div class="config-form-row">
+              <div class="config-form-group">
+                <label for="configProxyUsername" class="config-form-label">用户名（可选）</label>
+                <input type="text" id="configProxyUsername" class="config-form-input" placeholder="代理认证用户名">
+              </div>
+              <div class="config-form-group">
+                <label for="configProxyPassword" class="config-form-label">密码（可选）</label>
+                <input type="password" id="configProxyPassword" class="config-form-input" placeholder="代理认证密码">
+              </div>
+            </div>
+
+            <div class="config-form-group">
+              <label for="configProxyBypass" class="config-form-label">绕过代理的地址</label>
+              <input type="text" id="configProxyBypass" class="config-form-input" value="localhost,127.0.0.1,*.local" placeholder="用逗号分隔多个地址">
+              <div class="config-form-help">这些地址将不使用代理，支持通配符</div>
+            </div>
+
+            <div class="config-form-group">
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="config-btn config-btn-secondary config-btn-sm" onclick="testConfigProxy(event)">测试连接</button>
+                <button class="config-btn config-btn-warning config-btn-sm" onclick="diagnoseConfigProxy(event)">诊断问题</button>
+              </div>
+              <div id="configProxyStatus" class="config-status" style="display: none;"></div>
+              <div id="configProxyDiagnosis" class="config-status" style="display: none; margin-top: 10px;"></div>
+              <div class="config-form-help">
+                <strong>常见问题排查：</strong><br>
+                • 确保代理服务器正在运行<br>
+                • 检查防火墙是否阻止了连接<br>
+                • 验证代理类型选择是否正确<br>
+                • 如果使用认证，请确认用户名密码正确
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+
+
+
+      <!-- 按钮组 -->
+      <div class="config-section">
+        <div class="config-btn-group">
+          <button class="config-btn config-btn-warning" onclick="resetConfigPanel()">重置设置</button>
+          <button class="config-btn config-btn-secondary" onclick="hideConfigPanel()">取消</button>
+          <button class="config-btn config-btn-primary" onclick="saveConfigPanel(event)">保存设置</button>
+        </div>
       </div>
     </div>
 
@@ -649,15 +1024,324 @@
     window.electronAPI.onToggleShortcutHelp((show) => {
       const appGrid = document.getElementById('appGrid');
       const shortcutHelp = document.getElementById('shortcutHelp');
+      const configPanel = document.getElementById('configPanel');
       
       if (show) {
         appGrid.style.display = 'none';
         shortcutHelp.classList.add('visible');
+        configPanel.classList.remove('visible');
       } else {
         appGrid.style.display = 'grid';
         shortcutHelp.classList.remove('visible');
       }
     });
+
+    // 处理配置面板的显示/隐藏
+    window.electronAPI.onToggleConfigPanel((show) => {
+      if (show) {
+        showConfigPanel();
+      } else {
+        hideConfigPanel();
+      }
+    });
+
+    // 显示配置面板
+    function showConfigPanel() {
+      const appGrid = document.getElementById('appGrid');
+      const shortcutHelp = document.getElementById('shortcutHelp');
+      const configPanel = document.getElementById('configPanel');
+      
+      appGrid.style.display = 'none';
+      shortcutHelp.classList.remove('visible');
+      configPanel.classList.add('visible');
+      
+      // 加载配置
+      loadConfigPanel();
+    }
+
+    // 隐藏配置面板
+    function hideConfigPanel() {
+      const appGrid = document.getElementById('appGrid');
+      const configPanel = document.getElementById('configPanel');
+      
+      appGrid.style.display = 'grid';
+      configPanel.classList.remove('visible');
+    }
+
+    // 配置相关变量
+    let currentConfigData = {};
+
+    // 加载配置
+    async function loadConfigPanel() {
+      try {
+        currentConfigData = await window.electronAPI.getConfig();
+        populateConfigForm();
+      } catch (error) {
+        console.error('加载配置失败:', error);
+      }
+    }
+
+    // 填充配置表单
+    function populateConfigForm() {
+      // 代理设置
+      document.getElementById('configProxyEnabled').checked = currentConfigData.proxy?.enabled || false;
+      document.getElementById('configProxyType').value = currentConfigData.proxy?.type || 'socks5';
+      document.getElementById('configProxyHost').value = currentConfigData.proxy?.host || '';
+      document.getElementById('configProxyPort').value = currentConfigData.proxy?.port || '';
+      document.getElementById('configProxyUsername').value = currentConfigData.proxy?.username || '';
+      document.getElementById('configProxyPassword').value = currentConfigData.proxy?.password || '';
+      document.getElementById('configProxyBypass').value = currentConfigData.proxy?.bypassList || 'localhost,127.0.0.1,*.local';
+
+      
+
+
+
+      toggleConfigProxySettings();
+    }
+
+    // 切换配置标签页
+    function switchConfigTab(tabName, event) {
+      // 隐藏所有标签内容
+      document.querySelectorAll('.config-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      // 移除所有按钮的激活状态
+      document.querySelectorAll('.config-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // 显示选中的标签
+      document.getElementById('config-' + tabName + '-tab').classList.add('active');
+      if (event && event.target) {
+        event.target.classList.add('active');
+      } else {
+        // 如果没有event，通过tabName找到对应的按钮
+        const activeBtn = document.querySelector(`[onclick*="${tabName}"]`);
+        if (activeBtn) {
+          activeBtn.classList.add('active');
+        }
+      }
+    }
+
+    // 切换代理设置可用性
+    function toggleConfigProxySettings() {
+      const enabled = document.getElementById('configProxyEnabled').checked;
+      const settingsDiv = document.getElementById('configProxySettings');
+      
+      if (enabled) {
+        settingsDiv.classList.remove('config-disabled');
+      } else {
+        settingsDiv.classList.add('config-disabled');
+      }
+    }
+
+    // 测试代理连接
+    async function testConfigProxy(event) {
+      const statusDiv = document.getElementById('configProxyStatus');
+      const testBtn = event ? event.target : document.querySelector('.config-btn-secondary.config-btn-sm');
+      
+      // 获取代理配置
+      const proxyConfig = {
+        type: document.getElementById('configProxyType').value,
+        host: document.getElementById('configProxyHost').value,
+        port: document.getElementById('configProxyPort').value,
+        username: document.getElementById('configProxyUsername').value,
+        password: document.getElementById('configProxyPassword').value
+      };
+
+      if (!proxyConfig.host || !proxyConfig.port) {
+        showConfigStatus('error', '请先填写主机地址和端口');
+        return;
+      }
+
+      // 显示测试状态
+      testBtn.disabled = true;
+      testBtn.textContent = '测试中...';
+      showConfigStatus('testing', '正在测试代理连接...');
+
+      try {
+        const result = await window.electronAPI.testProxy(proxyConfig);
+        
+        if (result.success) {
+          showConfigStatus('success', result.message || '代理连接成功');
+        } else {
+          showConfigStatus('error', result.error || '代理连接失败');
+        }
+      } catch (error) {
+        showConfigStatus('error', '测试失败: ' + error.message);
+      } finally {
+        testBtn.disabled = false;
+        testBtn.textContent = '测试连接';
+      }
+    }
+
+    // 显示配置状态信息
+    function showConfigStatus(type, message) {
+      const statusDiv = document.getElementById('configProxyStatus');
+      statusDiv.className = `config-status ${type}`;
+      statusDiv.innerHTML = `
+        <div class="config-status-icon ${type}"></div>
+        <span>${message}</span>
+      `;
+      statusDiv.style.display = 'flex';
+
+      // 3秒后隐藏状态（除了错误状态）
+      if (type !== 'error') {
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+        }, 3000);
+      }
+    }
+
+    // 显示诊断信息
+    function showConfigDiagnosis(type, message) {
+      const diagnosisDiv = document.getElementById('configProxyDiagnosis');
+      diagnosisDiv.className = `config-status ${type}`;
+      diagnosisDiv.innerHTML = `
+        <div class="config-status-icon ${type}"></div>
+        <span>${message}</span>
+      `;
+      diagnosisDiv.style.display = 'flex';
+    }
+
+    // 诊断代理问题
+    async function diagnoseConfigProxy(event) {
+      const diagnoseBtn = event ? event.target : document.querySelector('.config-btn-warning.config-btn-sm');
+      
+      // 获取代理配置
+      const proxyConfig = {
+        type: document.getElementById('configProxyType').value,
+        host: document.getElementById('configProxyHost').value,
+        port: document.getElementById('configProxyPort').value,
+        username: document.getElementById('configProxyUsername').value,
+        password: document.getElementById('configProxyPassword').value
+      };
+
+      diagnoseBtn.disabled = true;
+      diagnoseBtn.textContent = '诊断中...';
+      
+      let diagnosis = [];
+
+      // 基本配置检查
+      if (!proxyConfig.host) {
+        diagnosis.push('❌ 未填写代理服务器地址');
+      } else if (proxyConfig.host === 'localhost' || proxyConfig.host === '127.0.0.1') {
+        diagnosis.push('✅ 使用本地代理服务器');
+      } else {
+        diagnosis.push('ℹ️ 使用远程代理服务器: ' + proxyConfig.host);
+      }
+
+      if (!proxyConfig.port) {
+        diagnosis.push('❌ 未填写代理端口');
+      } else {
+        const port = parseInt(proxyConfig.port);
+        if (port < 1 || port > 65535) {
+          diagnosis.push('❌ 端口号无效 (1-65535)');
+        } else {
+          diagnosis.push('✅ 端口号有效: ' + port);
+        }
+      }
+
+      // 代理类型检查
+      const commonPorts = {
+        'http': [8080, 3128, 8888, 8118],
+        'https': [8080, 3128, 8888],
+        'socks4': [1080],
+        'socks5': [1080, 1081]
+      };
+
+      if (commonPorts[proxyConfig.type]) {
+        const port = parseInt(proxyConfig.port);
+        if (commonPorts[proxyConfig.type].includes(port)) {
+          diagnosis.push('✅ 代理类型和端口匹配常见配置');
+        } else {
+          diagnosis.push('⚠️ 端口不是' + proxyConfig.type.toUpperCase() + '代理的常见端口');
+        }
+      }
+
+      // 认证检查
+      if (proxyConfig.username && proxyConfig.password) {
+        diagnosis.push('ℹ️ 启用了代理认证');
+      } else if (proxyConfig.username || proxyConfig.password) {
+        diagnosis.push('⚠️ 用户名和密码应该同时填写或同时为空');
+      } else {
+        diagnosis.push('ℹ️ 未使用代理认证');
+      }
+
+      // 协议兼容性检查
+      if (proxyConfig.type === 'http') {
+        diagnosis.push('⚠️ HTTP代理可能不支持所有HTTPS请求');
+        diagnosis.push('💡 建议: 如果遇到协议错误，尝试SOCKS5');
+      } else if (proxyConfig.type === 'socks5') {
+        diagnosis.push('✅ SOCKS5协议兼容性最佳');
+      }
+
+      // 网络连接检查建议
+      diagnosis.push('');
+      diagnosis.push('🔍 建议检查项目:');
+      diagnosis.push('• 代理软件是否正在运行？');
+      diagnosis.push('• 防火墙是否允许连接？');
+      diagnosis.push('• 代理设置是否与代理软件配置一致？');
+      diagnosis.push('• 尝试在浏览器中使用相同的代理设置');
+      diagnosis.push('• 如果出现"invalid method"错误，切换到SOCKS5');
+
+      const message = diagnosis.join('<br>');
+      showConfigDiagnosis('testing', message);
+
+      diagnoseBtn.disabled = false;
+      diagnoseBtn.textContent = '诊断问题';
+    }
+
+    // 保存配置
+    async function saveConfigPanel(event) {
+      try {
+        const newConfig = {
+          proxy: {
+            enabled: document.getElementById('configProxyEnabled').checked,
+            type: document.getElementById('configProxyType').value,
+            host: document.getElementById('configProxyHost').value,
+            port: document.getElementById('configProxyPort').value,
+            username: document.getElementById('configProxyUsername').value,
+            password: document.getElementById('configProxyPassword').value,
+            bypassList: document.getElementById('configProxyBypass').value
+                     }
+        };
+
+        await window.electronAPI.updateConfig(newConfig);
+        
+        // 显示保存成功提示
+        const saveBtn = event ? event.target : document.querySelector('.config-btn-primary');
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = '保存成功!';
+        saveBtn.classList.remove('config-btn-primary');
+        saveBtn.classList.add('config-btn-success');
+        
+        setTimeout(() => {
+          saveBtn.textContent = originalText;
+          saveBtn.classList.remove('config-btn-success');
+          saveBtn.classList.add('config-btn-primary');
+        }, 2000);
+
+      } catch (error) {
+        console.error('保存配置失败:', error);
+        alert('保存配置失败: ' + error.message);
+      }
+    }
+
+    // 重置配置
+    async function resetConfigPanel() {
+      if (confirm('确定要重置所有设置到默认值吗？')) {
+        try {
+          await window.electronAPI.resetConfig();
+          await loadConfigPanel();
+          alert('设置已重置为默认值');
+        } catch (error) {
+          console.error('重置配置失败:', error);
+          alert('重置配置失败: ' + error.message);
+        }
+      }
+    }
 
     console.log('Main HTML loaded');
   </script>

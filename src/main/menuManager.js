@@ -20,22 +20,35 @@ class MenuManager {
     this.windowManager.mainWindow.webContents.send('toggle-shortcut-help', this.isHelpVisible);
   }
 
+  // 打开设置面板
+  openSettings(tab = null) {
+    // 发送事件到主窗口显示配置面板
+    this.windowManager.mainWindow.webContents.send('toggle-config-panel', true);
+  }
+
   createMenu() {
     const template = [
       {
-        label: 'Help',
+        label: '设置',
         submenu: [
           {
-            label: 'Keyboard Shortcuts',
+            label: '偏好设置...',
+            accelerator: process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
+            click: () => {
+              this.openSettings();
+            }
+          }
+        ]
+      },
+      {
+        label: '帮助',
+        submenu: [
+          {
+            label: '键盘快捷键',
             accelerator: process.platform === 'darwin' ? 'Cmd+/' : 'Ctrl+/',
             click: () => {
               this.showShortcutHelp();
             }
-          },
-          { type: 'separator' },
-          {
-            role: 'about',
-            label: 'About Shell++'
           }
         ]
       }

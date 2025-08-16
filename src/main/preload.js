@@ -29,6 +29,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   toggleShortcutHelp: (show) => {
     ipcRenderer.invoke('toggle-shortcut-help', show);
+  },
+
+  // 配置管理
+  getConfig: (key) => ipcRenderer.invoke('get-config', key),
+  setConfig: (key, value) => ipcRenderer.invoke('set-config', key, value),
+  updateConfig: (config) => ipcRenderer.invoke('update-config', config),
+  resetConfig: () => ipcRenderer.invoke('reset-config'),
+  testProxy: (proxyConfig) => ipcRenderer.invoke('test-proxy', proxyConfig),
+  
+  // 配置面板事件
+  onToggleConfigPanel: (callback) => {
+    ipcRenderer.on('toggle-config-panel', (_, show) => callback(show));
   }
 });
 
