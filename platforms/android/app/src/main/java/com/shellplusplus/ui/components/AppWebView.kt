@@ -61,8 +61,6 @@ fun AppWebView(
                     databaseEnabled = true
                     loadWithOverviewMode = true
                     useWideViewPort = true
-                    // 强制使用 HTTPS
-                    mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                     // 设置缓存模式
                     cacheMode = WebSettings.LOAD_NO_CACHE
                     // 设置UA为Firefox移动端
@@ -75,6 +73,18 @@ fun AppWebView(
                     setSupportZoom(true)
                     builtInZoomControls = true
                     displayZoomControls = false
+                    
+                    // 添加安全相关设置
+                    allowFileAccess = false
+                    allowContentAccess = false
+                    allowFileAccessFromFileURLs = false
+                    allowUniversalAccessFromFileURLs = false
+                    
+                    // 启用现代Web特性
+                    setGeolocationEnabled(true)
+                    
+                    // 设置混合内容处理为允许，改善Google登录兼容性
+                    mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                 }
 
                 // 设置 WebChromeClient 以处理权限请求
