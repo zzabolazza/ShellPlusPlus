@@ -31,6 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import com.shellplusplus.data.AppInfo
@@ -46,6 +50,30 @@ fun MainScreen(
     val selectedApp by viewModel.selectedApp.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    
+    // 顶部菜单栏自动隐藏状态
+    var isTopBarVisible by remember { mutableStateOf(true) }
+    var topBarHideJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    
+    // 自动隐藏顶部菜单栏的函数
+    fun hideTopBarAfterDelay() {
+        topBarHideJob?.cancel()
+        topBarHideJob = scope.launch {
+            kotlinx.coroutines.delay(3000) // 3秒后自动隐藏
+            isTopBarVisible = false
+        }
+    }
+    
+    // 显示顶部菜单栏的函数
+    fun showTopBar() {
+        isTopBarVisible = true
+        hideTopBarAfterDelay() // 重新开始计时
+    }
+    
+    // 初始化时显示顶部菜单栏并开始计时
+    LaunchedEffect(Unit) {
+        hideTopBarAfterDelay()
+    }
 
     ModalNavigationDrawer(
         drawerContent = {
@@ -54,7 +82,7 @@ fun MainScreen(
                 drawerContainerColor = MaterialTheme.colorScheme.surface,
                 drawerContentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(3.dp))
                 Text(
                     "应用列表",
                     modifier = Modifier.padding(16.dp),
@@ -200,32 +228,65 @@ fun MainScreen(
     ) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text(selectedApp?.name ?: "Shell++") },
-                    navigationIcon = {
-                        IconButton(onClick = { 
-                            scope.launch { drawerState.open() }
-                        }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                if (isTopBarVisible) {
+                    TopAppBar(
+                        title = { Text(selectedApp?.name ?: "Shell++") },
+                        navigationIcon = {
+                            IconButton(onClick = { 
+                                scope.launch { drawerState.open() }
+                            }) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = { viewModel.showConfigDialog() }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "配置"
+                                )
+                            }
                         }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = { viewModel.showConfigDialog() }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "配置"
-                            )
-                        }
-                    }
-                )
+                    )
+                }
             }
         ) { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
+                    .pointerInput(Unit) {
+                        var pointerCount = 0
+                        var velocityTracker = VelocityTracker()
+                        
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                when (event.type) {
+                                    PointerEventType.Press -> {
+                                        pointerCount = event.changes.size
+                                        if (pointerCount >= 2) {
+                                            // 双指触屏，显示顶部菜单栏
+                                            showTopBar()
+                                        }
+                                    }
+                                    PointerEventType.Release -> {
+                                        pointerCount = 0
+                                    }
+                                    PointerEventType.Move -> {
+                                        // 更新速度跟踪器
+                                        event.changes.forEach { change ->
+                                            velocityTracker.addPosition(
+                                                change.uptimeMillis,
+                                                change.position
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
             ) {
                 selectedApp?.let { app ->
                     AppWebView(
