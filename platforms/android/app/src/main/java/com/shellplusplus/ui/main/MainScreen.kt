@@ -69,16 +69,6 @@ fun MainScreen(
                     ) {
                         CircularProgressIndicator()
                     }
-                } else if (apps.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "没有找到应用程序\n请点击刷新按钮重试",
-                            textAlign = TextAlign.Center
-                        )
-                    }
                 } else {
                     Box(modifier = Modifier.fillMaxSize()) {
                         LazyColumn(
@@ -206,7 +196,7 @@ fun MainScreen(
             }
         },
         drawerState = drawerState,
-        gesturesEnabled = true
+        gesturesEnabled = false
     ) {
         Scaffold(
             topBar = {
