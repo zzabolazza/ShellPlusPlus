@@ -30,27 +30,26 @@ class ConfigManager @Inject constructor(
 
     init {
         loadConfig()
-        // 如果配置文件不存在或为空，初始化默认app
+        // 如果配置文件不存在或为空，同步初始化默认app
         if (config.apps.isEmpty()) {
-            // 延迟初始化，确保加密工具已经准备好
-            initializeDefaultAppsAsync()
-        }
-    }
-
-    private fun initializeDefaultAppsAsync() {
-        // 使用协程来异步初始化，避免在构造函数中调用suspend函数
-        CoroutineScope(Dispatchers.IO).launch {
             initializeDefaultApps()
         }
     }
 
-    private suspend fun initializeDefaultApps() {
-        val defaultApps = DefaultApps.apps
-        config = config.copy(
-            apps = defaultApps,
-            enabledApps = defaultApps.map { it.packageName }.toSet()
-        )
-        saveConfig()
+    private fun initializeDefaultApps() {
+        try {
+            val defaultApps = DefaultApps.apps
+            config = config.copy(
+                apps = defaultApps,
+                enabledApps = defaultApps.map { it.packageName }.toSet()
+            )
+            // 异步保存配置，避免阻塞构造函数
+            CoroutineScope(Dispatchers.IO).launch {
+                saveConfig()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun loadConfig() {

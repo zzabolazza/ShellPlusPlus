@@ -61,6 +61,11 @@ class AppManager {
       { name: "Hugging Face", url: "https://huggingface.co/chat/" },
       { name: "OpenRouter", url: "https://openrouter.ai/" },
       { name: "YouWare", url: "https://www.youware.com/" },
+      { name: "Replit", url: "https://replit.com/" },
+      { name: "You", url: "https://you.com/?chatMode=default" },
+      { name: "纳米搜索", url: "https://www.n.cn/" },
+      { name: "讯飞星火", url: "https://xinghuo.xfyun.cn/" },
+      { name: "秘塔AI", url: "https://metaso.cn/" },
     ];
 
     // 初始化配置对象和应用列表

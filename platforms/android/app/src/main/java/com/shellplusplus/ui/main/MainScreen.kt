@@ -35,10 +35,18 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import coil.compose.AsyncImage
 import com.shellplusplus.data.AppInfo
 import com.shellplusplus.ui.components.AppWebView
+import java.net.URI
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material.icons.filled.Close
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,14 +68,35 @@ fun MainScreen(
         topBarHideJob?.cancel()
         topBarHideJob = scope.launch {
             kotlinx.coroutines.delay(3000) // 3秒后自动隐藏
-            isTopBarVisible = false
+            // 只有当侧边栏关闭时才隐藏顶部菜单栏
+            if (drawerState.currentValue == DrawerValue.Closed) {
+                isTopBarVisible = false
+            }
         }
     }
     
     // 显示顶部菜单栏的函数
     fun showTopBar() {
         isTopBarVisible = true
-        hideTopBarAfterDelay() // 重新开始计时
+        // 只有当侧边栏关闭时才开始自动隐藏计时
+        if (drawerState.currentValue == DrawerValue.Closed) {
+            hideTopBarAfterDelay()
+        }
+    }
+    
+    // 监听侧边栏状态变化
+    LaunchedEffect(drawerState.currentValue) {
+        when (drawerState.currentValue) {
+            DrawerValue.Open -> {
+                // 侧边栏打开时，显示顶部菜单栏并停止自动隐藏
+                isTopBarVisible = true
+                topBarHideJob?.cancel()
+            }
+            DrawerValue.Closed -> {
+                // 侧边栏关闭时，开始自动隐藏计时
+                hideTopBarAfterDelay()
+            }
+        }
     }
     
     // 初始化时显示顶部菜单栏并开始计时
@@ -78,16 +107,40 @@ fun MainScreen(
     ModalNavigationDrawer(
         drawerContent = {
             ModalDrawerSheet(
-                modifier = Modifier.width(280.dp),
+                modifier = Modifier.width(240.dp),
                 drawerContainerColor = MaterialTheme.colorScheme.surface,
                 drawerContentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    "应用列表",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleLarge
-                )
+                Spacer(Modifier.height(1.5.dp))
+                
+                // 标题栏，包含标题和关闭按钮
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "应用列表",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    
+                    // 关闭按钮
+                    IconButton(
+                        onClick = { 
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "关闭应用列表",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                
                 Divider()
                 
                 if (isLoading) {
@@ -99,125 +152,73 @@ fun MainScreen(
                     }
                 } else {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp),
-                            state = rememberLazyListState()
-                        ) {
-                            items(
-                                items = apps,
-                                key = { it.packageName }
-                            ) { app ->
-                                val dismissState = rememberDismissState(
-                                    confirmValueChange = { dismissValue ->
-                                        if (dismissValue == DismissValue.DismissedToStart) {
-                                            viewModel.showDeleteConfirmation(app)
-                                        }
-                                        false
-                                    }
-                                )
-                                SwipeToDismiss(
-                                    state = dismissState,
-                                    background = { },
-                                    dismissContent = {
-                                        AppItem(
-                                            app = app,
-                                            isSelected = app.packageName == selectedApp?.packageName,
-                                            onSelect = {
-                                                viewModel.selectApp(app)
-                                                scope.launch { drawerState.close() }
+                        if (apps.isEmpty()) {
+                            // 应用列表为空时的提示
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "正在加载默认应用...",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp),
+                                state = rememberLazyListState()
+                            ) {
+                                items(
+                                    items = apps,
+                                    key = { it.packageName }
+                                ) { app ->
+                                    val dismissState = rememberDismissState(
+                                        confirmValueChange = { dismissValue ->
+                                            if (dismissValue == DismissValue.DismissedToStart) {
+                                                viewModel.showDeleteConfirmation(app)
                                             }
-                                        )
-                                    },
-                                    directions = setOf(DismissDirection.EndToStart)
-                                )
+                                            false
+                                        }
+                                    )
+                                    SwipeToDismiss(
+                                        state = dismissState,
+                                        background = { },
+                                        dismissContent = {
+                                            AppItem(
+                                                app = app,
+                                                isSelected = app.packageName == selectedApp?.packageName,
+                                                onSelect = {
+                                                    viewModel.selectApp(app)
+                                                    scope.launch { drawerState.close() }
+                                                }
+                                            )
+                                        },
+                                        directions = setOf(DismissDirection.EndToStart)
+                                    )
+                                }
                             }
                         }
                         
-                        // 添加按钮
-                        FloatingActionButton(
-                            onClick = { viewModel.showAddDialog() },
+                        // 添加按钮（底部悬浮按钮）
+                        Text(
+                            text = "+",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(bottom = 16.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "添加应用")
-                        }
-                    }
-
-                    // 删除确认对话框
-                    val showDeleteDialog by viewModel.showDeleteDialog.collectAsState()
-                    if (showDeleteDialog) {
-                        AlertDialog(
-                            onDismissRequest = { viewModel.hideDeleteConfirmation() },
-                            title = { Text("确认删除") },
-                            text = {
-                                val appToDelete by viewModel.appToDelete.collectAsState()
-                                Text("确定要删除 ${appToDelete?.name} 吗？")
-                            },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        viewModel.deleteApp()
-                                        viewModel.hideDeleteConfirmation()
-                                    }
-                                ) {
-                                    Text("删除")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { viewModel.hideDeleteConfirmation() }) {
-                                    Text("取消")
-                                }
-                            }
-                        )
-                    }
-
-                    // 添加应用对话框
-                    val showAddDialog by viewModel.showAddDialog.collectAsState()
-                    if (showAddDialog) {
-                        var name by remember { mutableStateOf("") }
-                        var url by remember { mutableStateOf("") }
-                        
-                        AlertDialog(
-                            onDismissRequest = { viewModel.hideAddDialog() },
-                            title = { Text("添加应用") },
-                            text = {
-                                Column {
-                                    OutlinedTextField(
-                                        value = name,
-                                        onValueChange = { name = it },
-                                        label = { Text("应用名称") },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
-                                        value = url,
-                                        onValueChange = { url = it },
-                                        label = { Text("应用网址") },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        if (name.isNotBlank() && url.isNotBlank()) {
-                                            viewModel.addApp(name, url)
-                                            viewModel.hideAddDialog()
-                                        }
-                                    }
-                                ) {
-                                    Text("添加")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { viewModel.hideAddDialog() }) {
-                                    Text("取消")
-                                }
-                            }
+                                .clickable { viewModel.showAddDialog() }
                         )
                     }
                 }
@@ -258,7 +259,6 @@ fun MainScreen(
                     .padding(innerPadding)
                     .pointerInput(Unit) {
                         var pointerCount = 0
-                        var velocityTracker = VelocityTracker()
                         
                         awaitPointerEventScope {
                             while (true) {
@@ -274,20 +274,12 @@ fun MainScreen(
                                     PointerEventType.Release -> {
                                         pointerCount = 0
                                     }
-                                    PointerEventType.Move -> {
-                                        // 更新速度跟踪器
-                                        event.changes.forEach { change ->
-                                            velocityTracker.addPosition(
-                                                change.uptimeMillis,
-                                                change.position
-                                            )
-                                        }
-                                    }
                                 }
                             }
                         }
                     }
             ) {
+                // 网页内容区域
                 selectedApp?.let { app ->
                     AppWebView(
                         url = app.url,
@@ -302,6 +294,82 @@ fun MainScreen(
                     }
                 }
             }
+        }
+        
+        // 删除确认对话框
+        val showDeleteDialog by viewModel.showDeleteDialog.collectAsState()
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.hideDeleteConfirmation() },
+                title = { Text("确认删除") },
+                text = {
+                    val appToDelete by viewModel.appToDelete.collectAsState()
+                    Text("确定要删除 ${appToDelete?.name} 吗？")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteApp()
+                            viewModel.hideDeleteConfirmation()
+                        }
+                    ) {
+                        Text("删除")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.hideDeleteConfirmation() }) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
+
+        // 添加应用对话框
+        val showAddDialog by viewModel.showAddDialog.collectAsState()
+        if (showAddDialog) {
+            var name by remember { mutableStateOf("") }
+            var url by remember { mutableStateOf("") }
+            
+            AlertDialog(
+                onDismissRequest = { viewModel.hideAddDialog() },
+                title = { Text("添加应用") },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text("应用名称") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = url,
+                            onValueChange = { url = it },
+                            label = { Text("应用网址") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (name.isNotBlank() && url.isNotBlank()) {
+                                viewModel.addApp(name, url)
+                                viewModel.hideAddDialog()
+                            }
+                        }
+                    ) {
+                        Text("添加")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.hideAddDialog() }) {
+                        Text("取消")
+                    }
+                }
+            )
         }
         
         // 配置对话框
@@ -328,6 +396,17 @@ fun AppItem(
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {
+    // 从URL中提取域名
+    val domain = try {
+        val uri = URI(app.url)
+        uri.host ?: "unknown"
+    } catch (e: Exception) {
+        "unknown"
+    }
+    
+    // 构建favicon URL
+    val faviconUrl = "https://favicon.im/$domain"
+    
     Box(
         modifier = Modifier
         .fillMaxWidth()
@@ -342,9 +421,9 @@ fun AppItem(
             horizontalArrangement = Arrangement.Start
         ) {
             Box(
-                    modifier = Modifier
+                modifier = Modifier
                     .size(32.dp)
-                        .clip(CircleShape)
+                    .clip(CircleShape)
                     .background(
                         if (isSelected)
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
@@ -353,13 +432,12 @@ fun AppItem(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = app.name.take(1).uppercase(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (isSelected)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                // 使用网络图标，如果加载失败则显示文字
+                AsyncImage(
+                    model = faviconUrl,
+                    contentDescription = "${app.name} 图标",
+                    modifier = Modifier.size(24.dp),
+                    contentScale = ContentScale.Fit
                 )
             }
             

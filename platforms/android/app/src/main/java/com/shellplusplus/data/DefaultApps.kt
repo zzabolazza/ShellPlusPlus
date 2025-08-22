@@ -136,6 +136,31 @@ object DefaultApps {
             packageName = "youware",
             name = "YouWare",
             url = "https://www.youware.com/"
+        ),
+        AppConfig(
+            packageName = "replit",
+            name = "Replit",
+            url = "https://replit.com/"
+        ),
+        AppConfig(
+            packageName = "you",
+            name = "You",
+            url = "https://you.com/?chatMode=default"
+        ),
+        AppConfig(
+            packageName = "N",
+            name = "纳米搜索",
+            url = "https://www.n.cn/"
+        ),
+        AppConfig(
+            packageName = "xinghuo",
+            name = "讯飞星火",
+            url = "https://xinghuo.xfyun.cn/"
+        ),
+        AppConfig(
+            packageName = "metaso",
+            name = "秘塔AI",
+            url = "https://metaso.cn/"
         )
     )
 }

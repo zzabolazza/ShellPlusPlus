@@ -141,6 +141,13 @@ npm install
 npm start
 ```
 
+## ICON生成
+```shell
+npm run electron:generate-icons
+# 以及
+magick convert platforms/pc/src/assets/icons/icon.png -resize 144x144 platforms/pc/src/assets/icons/144x144.png
+```
+
 ## 许可证
 
 本项目采用MIT许可证。
