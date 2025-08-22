@@ -1,0 +1,38 @@
+{
+  "name": "shellplusplus-website",
+  "version": "1.0.0",
+  "description": "Shell++ Homepage - 一个简单的应用启动器主页",
+  "main": "index.js",
+  "homepage": "https://your-domain.vercel.app",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "shellplusplus",
+    "homepage",
+    "app-launcher",
+    "vercel",
+    "ai-apps"
+  ],
+  "author": "Shell++ Team",
+  "license": "MIT"
+}
