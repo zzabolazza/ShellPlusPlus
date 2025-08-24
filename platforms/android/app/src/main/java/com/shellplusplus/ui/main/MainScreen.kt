@@ -59,6 +59,9 @@ fun MainScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     
+    // 当前页面标题状态
+    var currentPageTitle by remember { mutableStateOf<String?>(null) }
+    
     // 顶部菜单栏自动隐藏状态
     var isTopBarVisible by remember { mutableStateOf(true) }
     var topBarHideJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
@@ -97,6 +100,11 @@ fun MainScreen(
                 hideTopBarAfterDelay()
             }
         }
+    }
+    
+    // 当选择的应用程序改变时，重置页面标题
+    LaunchedEffect(selectedApp) {
+        currentPageTitle = null
     }
     
     // 初始化时显示顶部菜单栏并开始计时
@@ -231,7 +239,13 @@ fun MainScreen(
             topBar = {
                 if (isTopBarVisible) {
                     TopAppBar(
-                        title = { Text(selectedApp?.name ?: "Shell++") },
+                        title = { 
+                            Text(
+                                text = currentPageTitle ?: selectedApp?.name ?: "Shell++",
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            ) 
+                        },
                         navigationIcon = {
                             IconButton(onClick = { 
                                 scope.launch { drawerState.open() }
@@ -283,7 +297,10 @@ fun MainScreen(
                 selectedApp?.let { app ->
                     AppWebView(
                         url = app.url,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        onTitleChanged = { title ->
+                            currentPageTitle = title
+                        }
                     )
                 } ?: run {
                     Box(
