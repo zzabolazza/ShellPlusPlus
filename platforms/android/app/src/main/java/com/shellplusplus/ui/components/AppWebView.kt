@@ -7,12 +7,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.Modifier
 import android.util.Log
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun AppWebView(
     url: String, 
     modifier: Modifier = Modifier
 ) {
+    var webView by remember { mutableStateOf<WebView?>(null) }
+    
+    // 处理返回键
+    BackHandler {
+        webView?.let { view ->
+            if (view.canGoBack()) {
+                view.goBack()
+            }
+        }
+    }
+    
     AndroidView(
         factory = { ctx ->
             WebView(ctx).apply {
@@ -105,11 +117,16 @@ fun AppWebView(
                 
                 // 加载URL
                 loadUrl(url)
+                
+                // 保存WebView引用
+                webView = this
             }
         },
-        update = { webView ->
+        update = { webViewInstance ->
             // 每次更新都重新加载URL
-            webView.loadUrl(url)
+            webViewInstance.loadUrl(url)
+            // 更新WebView引用
+            webView = webViewInstance
         },
         modifier = modifier
     )
