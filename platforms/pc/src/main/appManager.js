@@ -53,6 +53,7 @@ class AppManager {
       { name: "Poe", url: "https://www.poe.com/" },
       { name: "Deepseek", url: "https://chat.deepseek.com/" },
       { name: "文心一言", url: "https://yiyan.baidu.com/" },
+	  { name: "百度AI", url: "https://chat.baidu.com/" },
       { name: "Microsoft Copilot", url: "https://copilot.microsoft.com/" },
       { name: "Monica", url: "https://monica.im/" },
       { name: "GitHub Copilot", url: "https://github.com/copilot" },

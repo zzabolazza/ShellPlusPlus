@@ -31,6 +31,7 @@ const defaultApps: App[] = [
   { name: "Poe", url: "https://www.poe.com/", icon: "https://favicon.im/www.poe.com" },
   { name: "Deepseek", url: "https://chat.deepseek.com/", icon: "https://favicon.im/chat.deepseek.com" },
   { name: "文心一言", url: "https://yiyan.baidu.com/", icon: "https://favicon.im/yiyan.baidu.com" },
+  { name: "百度AI", url: "https://chat.baidu.com/", icon: "https://favicon.im/chat.baidu.com" },
   { name: "Microsoft Copilot", url: "https://copilot.microsoft.com/", icon: "https://favicon.im/copilot.microsoft.com" },
   { name: "Monica", url: "https://monica.im/", icon: "https://favicon.im/monica.im" },
   { name: "GitHub Copilot", url: "https://github.com/copilot", icon: "https://favicon.im/github.com" },

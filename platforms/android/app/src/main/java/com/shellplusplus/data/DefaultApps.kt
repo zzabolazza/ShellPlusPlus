@@ -98,6 +98,11 @@ object DefaultApps {
             url = "https://yiyan.baidu.com/"
         ),
         AppConfig(
+            packageName = "baidu",
+            name = "百度AI",
+            url = "https://chat.baidu.com/"
+        ),
+        AppConfig(
             packageName = "copilot",
             name = "Microsoft Copilot",
             url = "https://copilot.microsoft.com/"

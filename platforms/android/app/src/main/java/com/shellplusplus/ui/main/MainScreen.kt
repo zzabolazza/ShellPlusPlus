@@ -118,9 +118,7 @@ fun MainScreen(
                 modifier = Modifier.width(240.dp),
                 drawerContainerColor = MaterialTheme.colorScheme.surface,
                 drawerContentColor = MaterialTheme.colorScheme.onSurface
-            ) {
-                Spacer(Modifier.height(1.5.dp))
-                
+            ) { 
                 // 标题栏，包含标题和关闭按钮
                 Row(
                     modifier = Modifier
