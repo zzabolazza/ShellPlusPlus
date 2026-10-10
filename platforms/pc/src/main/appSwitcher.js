@@ -54,10 +54,10 @@ class AppSwitcher {
       });
     });
 
-    // 切换到指定应用
+    // 点击应用：选中并立即切换
     ipcMain.handle('switch-to-app-by-index', (event, index) => {
       this.selectedAppIndex = index;
-      this.updateSelectedApp();
+      this.finishAppSwitching();
       return true;
     });
 
@@ -209,6 +209,15 @@ class AppSwitcher {
       return;
     }
 
+    const activeAppName = this.getActiveAppName();
+    let nextIndex = openApps.indexOf(activeAppName);
+    if (nextIndex === -1) {
+      nextIndex = 0;
+    } else if (openApps.length > 1) {
+      nextIndex = (nextIndex + 1) % openApps.length;
+    }
+    this.selectedAppIndex = nextIndex;
+
     // 确保主窗口存在
     if (!this.windowManager.mainWindow || this.windowManager.mainWindow.isDestroyed()) {
       this.windowManager.createMainWindow();
@@ -218,11 +227,13 @@ class AppSwitcher {
     const mainBounds = this.windowManager.mainWindow.getBounds();
 
     // 创建应用切换器窗口
+    const switcherWidth = 600;
+    const switcherHeight = 230;
     this.switcherWindow = new BrowserWindow({
-      width: 600,
-      height: 200,
-      x: Math.round(mainBounds.x + (mainBounds.width - 600) / 2),
-      y: Math.round(mainBounds.y + (mainBounds.height - 200) / 2),
+      width: switcherWidth,
+      height: switcherHeight,
+      x: Math.round(mainBounds.x + (mainBounds.width - switcherWidth) / 2),
+      y: Math.round(mainBounds.y + (mainBounds.height - switcherHeight) / 2),
       parent: this.windowManager.mainWindow,
       modal: true,
       frame: false,
@@ -244,28 +255,43 @@ class AppSwitcher {
     // 加载应用切换器界面
     this.switcherWindow.loadFile(path.join(__dirname, '../renderer/appSwitcher.html'));
 
-    // 窗口失去焦点时关闭
+    // 窗口失去焦点时取消，不切换
     const blurHandler = () => {
       this.closeAppSwitcher();
     };
     this.switcherWindow.on('blur', blurHandler);
 
+    // 松开 Alt 确认当前高亮
+    const altUpHandler = (_event, input) => {
+      const isAlt = input.key === 'Alt' || input.code === 'AltLeft' || input.code === 'AltRight';
+      if (input.type === 'keyUp' && isAlt) {
+        this.finishAppSwitching();
+      }
+    };
+    this.switcherWindow.webContents.on('before-input-event', altUpHandler);
+
+    this.altUpHandler = altUpHandler;
+
+    // 尽早聚焦，松开 Alt 时才能收到 keyUp
+    this.switcherWindow.focus();
+
     // 窗口关闭时清除引用和事件监听器
     const closedHandler = () => {
-      this.switcherWindow.removeListener('blur', blurHandler);
-      this.switcherWindow.removeListener('closed', closedHandler);
+      const closedWindow = this.switcherWindow;
+      if (closedWindow) {
+        closedWindow.removeListener('blur', blurHandler);
+        closedWindow.removeListener('closed', closedHandler);
+      }
       this.switcherWindow = null;
+      this.altUpHandler = null;
       this.isAltTHeld = false;
     };
     this.switcherWindow.on('closed', closedHandler);
 
     // 当应用切换器加载完成后，发送当前打开的应用列表
     const loadHandler = () => {
-      // 查找当前活跃应用的索引
-      const activeAppName = this.getActiveAppName();
       const openApps = this.windowManager.getOpenApps();
-      this.selectedAppIndex = openApps.indexOf(activeAppName);
-      if (this.selectedAppIndex === -1) {
+      if (this.selectedAppIndex < 0 || this.selectedAppIndex >= openApps.length) {
         this.selectedAppIndex = 0;
       }
 
@@ -280,6 +306,8 @@ class AppSwitcher {
         apps,
         selectedIndex: this.selectedAppIndex
       });
+
+      this.switcherWindow.focus();
 
       // 加载完成后移除事件监听器
       this.switcherWindow.webContents.removeListener('did-finish-load', loadHandler);
@@ -298,24 +326,9 @@ class AppSwitcher {
     } else if (this.switcherWindow && !this.switcherWindow.isDestroyed()) {
       // 已经显示切换器，切换到下一个应用
       const openApps = this.windowManager.getOpenApps();
-      if (openApps.length > 0) {
-        // 获取当前选中应用的状态
-        const currentAppName = openApps[this.selectedAppIndex];
-        const currentStatus = this.windowManager.getAppStatus(currentAppName);
-
-        // 如果当前应用是最小化的，恢复它
-        if (currentStatus.isMinimized) {
-          // 从最小化集合中移除
-          this.windowManager.restoreMinimizedView();
-          return;
-        }
-
-        // 如果有多个应用，切换到下一个应用
-        if (openApps.length > 1) {
-          this.selectedAppIndex = (this.selectedAppIndex + 1) % openApps.length;
-          this.updateSelectedApp();
-        }
-        // 如果只有一个应用，保持当前选中状态即可
+      if (openApps.length > 1) {
+        this.selectedAppIndex = (this.selectedAppIndex + 1) % openApps.length;
+        this.updateSelectedApp();
       }
     }
   }
@@ -342,9 +355,11 @@ class AppSwitcher {
 
   // 完成应用切换 (当Alt键释放时)
   finishAppSwitching() {
-    if (!this.isAltTHeld || !this.switcherWindow) {
+    if (!this.isAltTHeld || !this.switcherWindow || this.switcherWindow.isDestroyed()) {
       return;
     }
+
+    this.isAltTHeld = false;
 
     const openApps = this.windowManager.getOpenApps();
     if (openApps.length > this.selectedAppIndex) {
@@ -361,7 +376,10 @@ class AppSwitcher {
   // 关闭应用切换器
   closeAppSwitcher() {
     if (this.switcherWindow && !this.switcherWindow.isDestroyed()) {
-      // 关闭窗口，事件监听器会在closed事件中被清理
+      if (this.altUpHandler) {
+        this.switcherWindow.webContents.removeListener('before-input-event', this.altUpHandler);
+        this.altUpHandler = null;
+      }
       this.switcherWindow.close();
     }
     this.isAltTHeld = false;

@@ -42,6 +42,12 @@ function setupIpcHandlers() {
   ipcMain.removeHandler('switch-to-app');
   ipcMain.removeHandler('close-app');
   ipcMain.removeHandler('show-app-selector');
+  ipcMain.removeHandler('show-launcher');
+  ipcMain.removeHandler('minimize-active-app');
+  ipcMain.removeHandler('close-active-app');
+  ipcMain.removeHandler('collapse-view-chrome');
+  ipcMain.removeHandler('open-shell-overlay');
+  ipcMain.removeHandler('close-shell-overlay');
   ipcMain.removeHandler('add-app');
   ipcMain.removeHandler('remove-app');
   ipcMain.removeHandler('update-app');
@@ -94,6 +100,34 @@ function setupIpcHandlers() {
 
   ipcMain.handle('show-app-selector', () => {
     appSwitcher.showAppSelector();
+    return true;
+  });
+
+  ipcMain.handle('show-launcher', () => {
+    windowManager.showLauncher();
+    return true;
+  });
+
+  ipcMain.handle('minimize-active-app', () => {
+    return windowManager.minimizeActiveView();
+  });
+
+  ipcMain.handle('close-active-app', () => {
+    return windowManager.closeActiveView();
+  });
+
+  ipcMain.handle('collapse-view-chrome', () => {
+    windowManager.collapseChromeFromUser();
+    return true;
+  });
+
+  ipcMain.handle('open-shell-overlay', (_, mode) => {
+    windowManager.beginShellOverlay(mode);
+    return true;
+  });
+
+  ipcMain.handle('close-shell-overlay', () => {
+    windowManager.endShellOverlay();
     return true;
   });
 
@@ -169,11 +203,11 @@ function initializeApp() {
   // 设置IPC处理程序
   setupIpcHandlers();
 
+  // 创建主窗口后再注册快捷键，确保窗口事件能挂上
+  windowManager.createMainWindow();
+
   // 注册快捷键
   shortcutManager.registerShortcuts();
-
-  // 创建主窗口
-  windowManager.createMainWindow();
 
   // 创建应用程序菜单
   menuManager = new MenuManager(windowManager);

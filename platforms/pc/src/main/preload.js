@@ -12,6 +12,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getOpenApps: () => ipcRenderer.invoke('get-open-apps'),
   switchToApp: (appName) => ipcRenderer.invoke('switch-to-app', appName),
   closeApp: (appName) => ipcRenderer.invoke('close-app', appName),
+  showLauncher: () => ipcRenderer.invoke('show-launcher'),
+  minimizeActiveApp: () => ipcRenderer.invoke('minimize-active-app'),
+  closeActiveApp: () => ipcRenderer.invoke('close-active-app'),
+  collapseViewChrome: () => ipcRenderer.invoke('collapse-view-chrome'),
+  openShellOverlay: (mode) => ipcRenderer.invoke('open-shell-overlay', mode),
+  closeShellOverlay: () => ipcRenderer.invoke('close-shell-overlay'),
   showAppSelector: () => ipcRenderer.invoke('show-app-selector'),
   addApp: (app) => ipcRenderer.invoke('add-app', app),
   removeApp: (appName) => ipcRenderer.invoke('remove-app', appName),
@@ -20,6 +26,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 事件监听
   onActiveAppChanged: (callback) => {
     ipcRenderer.on('active-app-changed', (_, appName) => callback(appName));
+  },
+  onShellState: (callback) => {
+    ipcRenderer.on('shell-state', (_, state) => callback(state));
+  },
+  onChromeExpanded: (callback) => {
+    ipcRenderer.on('chrome-expanded', (_, state) => callback(state));
   },
   onAppsChanged: (callback) => {
     ipcRenderer.on('apps-changed', () => callback());

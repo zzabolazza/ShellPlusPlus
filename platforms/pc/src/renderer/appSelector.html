@@ -62,6 +62,11 @@
       background-color: #f0f0f0;
     }
 
+    .app-empty {
+      padding: 10px;
+      color: #777;
+    }
+
     .app-icon {
       width: 36px;
       height: 36px;
@@ -191,7 +196,7 @@
 
       if (filteredApps.length === 0) {
         const noMatchItem = document.createElement('div');
-        noMatchItem.className = 'app-item';
+        noMatchItem.className = 'app-empty';
         noMatchItem.textContent = '没有匹配的应用';
         appList.appendChild(noMatchItem);
         return;
@@ -240,6 +245,13 @@
         appItem.appendChild(nameElement);
         appItem.appendChild(urlElement);
 
+        appItem.addEventListener('mouseenter', () => {
+          selectedIndex = index;
+          appList.querySelectorAll('.app-item').forEach((el, itemIndex) => {
+            el.classList.toggle('selected', itemIndex === index);
+          });
+        });
+
         appItem.addEventListener('click', () => {
           openApp(app.name);
         });
@@ -261,14 +273,18 @@
 
     // 搜索框事件
     document.getElementById('searchBox').addEventListener('input', (e) => {
-      renderAppList(e.target.value);
       selectedIndex = 0;
+      renderAppList(e.target.value);
     });
 
     // 键盘导航
     document.addEventListener('keydown', (e) => {
       const appList = document.getElementById('appList');
       const items = appList.querySelectorAll('.app-item');
+      if (items.length === 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter')) {
+        e.preventDefault();
+        return;
+      }
 
       switch (e.key) {
         case 'ArrowDown':

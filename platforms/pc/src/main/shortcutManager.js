@@ -1,5 +1,5 @@
 // 快捷键管理模块
-const { globalShortcut, app } = require('electron');
+const { globalShortcut } = require('electron');
 const electronLog = require('electron-log');
 
 class ShortcutManager {
@@ -7,8 +7,6 @@ class ShortcutManager {
     this.appSwitcher = appSwitcher;
     this.windowManager = windowManager;
     this.registeredShortcuts = new Set();
-    this.isAltKeyDown = false;
-    this.altKeyTimer = null;
   }
 
   // 注册所有快捷键
@@ -49,73 +47,7 @@ class ShortcutManager {
     this.registerShortcut('Alt+T', () => {
       electronLog.info('Alt+T pressed - Switching between open apps');
       this.appSwitcher.switchToNextApp();
-
-      // 设置Alt键状态
-      this.isAltKeyDown = true;
-
-      // 清除之前的定时器
-      if (this.altKeyTimer) {
-        clearTimeout(this.altKeyTimer);
-      }
-
-      // 设置一个定时器，如果长时间没有收到Alt键释放事件，自动关闭切换器
-      this.altKeyTimer = setTimeout(() => {
-        if (this.isAltKeyDown) {
-          this.isAltKeyDown = false;
-          this.appSwitcher.finishAppSwitching();
-        }
-      }, 3000); // 3000毫秒后自动关闭
     });
-
-    // 监听Alt键释放
-    this.setupAltKeyReleaseDetection();
-  }
-
-  // 设置Alt键释放检测
-  setupAltKeyReleaseDetection() {
-    // 在应用准备就绪后设置事件监听
-    if (app.isReady()) {
-      this.setupAltKeyEvents();
-    } else {
-      app.once('ready', () => {
-        this.setupAltKeyEvents();
-      });
-    }
-  }
-
-  // 设置Alt键事件
-  setupAltKeyEvents() {
-    // 监听窗口失去焦点事件，可能是Alt键释放导致的
-    if (this.windowManager.mainWindow) {
-      this.windowManager.mainWindow.on('blur', () => {
-        if (this.isAltKeyDown) {
-          this.isAltKeyDown = false;
-          this.appSwitcher.finishAppSwitching();
-        }
-      });
-    }
-
-    // 注册一个全局快捷键监听Alt键释放
-    // 由于Electron不直接支持监听键盘释放事件，我们使用一个技巧：
-    // 注册Alt+任意键的快捷键，当这些快捷键不再触发时，可能是Alt键被释放了
-    const altCombinations = ['Alt+A', 'Alt+S', 'Alt+D', 'Alt+F'];
-
-    for (const combo of altCombinations) {
-      this.registerShortcut(combo, () => {
-        // 当任何Alt组合键被按下时，重置定时器
-        if (this.altKeyTimer) {
-          clearTimeout(this.altKeyTimer);
-        }
-
-        this.altKeyTimer = setTimeout(() => {
-          // 如果一段时间内没有Alt组合键被按下，认为Alt键已释放
-          if (this.isAltKeyDown) {
-            this.isAltKeyDown = false;
-            this.appSwitcher.finishAppSwitching();
-          }
-        }, 50); // 50毫秒的延迟
-      });
-    }
   }
 
   // 注册单个快捷键

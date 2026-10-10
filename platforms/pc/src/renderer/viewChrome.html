@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>View controls</title>
+  <style>
+    :root {
+      --chrome-bg: rgba(255, 255, 255, 0.96);
+      --chrome-color: #1c1c1e;
+      --chrome-border: rgba(0, 0, 0, 0.14);
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .pill {
+      height: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .handle {
+      width: 36px;
+      height: 5px;
+      border-radius: 0 0 4px 4px;
+      background: var(--chrome-bg);
+      border: 1px solid var(--chrome-border);
+      border-top: none;
+    }
+
+    body.expanded .handle {
+      display: none;
+    }
+
+    .actions {
+      display: none;
+      align-items: center;
+      gap: 2px;
+      margin-top: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      background: var(--chrome-bg);
+      color: var(--chrome-color);
+      border: 1px solid var(--chrome-border);
+    }
+
+    body.expanded .actions {
+      display: flex;
+    }
+
+    button {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 14px;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 150ms ease, background 150ms ease, color 150ms ease;
+    }
+
+    button svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
+
+    button:hover,
+    button.hovered {
+      transform: scale(1.06);
+      background: rgba(127, 127, 127, 0.18);
+    }
+
+    button:active,
+    button.pressed {
+      transform: scale(0.94);
+    }
+
+    button.close:hover,
+    button.close.hovered {
+      background: #dc3545;
+      color: #fff;
+    }
+  </style>
+</head>
+<body class="light">
+  <div class="pill">
+    <div class="handle" title="窗口控制"></div>
+    <div class="actions">
+      <button type="button" id="collapseButton" title="收起">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 8.5 L7 4.5 L11 8.5"></path>
+        </svg>
+      </button>
+      <button type="button" id="minimizeButton" title="最小化">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M3 7 H11"></path>
+        </svg>
+      </button>
+      <button type="button" class="close" id="closeButton" title="关闭">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M3.5 3.5 L10.5 10.5"></path>
+          <path d="M10.5 3.5 L3.5 10.5"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <script>
+    function bindPress(button) {
+      button.addEventListener('pointerdown', () => {
+        button.classList.add('pressed');
+      });
+      button.addEventListener('pointerup', () => {
+        button.classList.remove('pressed');
+      });
+      button.addEventListener('pointerleave', () => {
+        button.classList.remove('pressed');
+        button.classList.remove('hovered');
+      });
+      button.addEventListener('pointerenter', () => {
+        button.classList.add('hovered');
+      });
+    }
+
+    const collapseButton = document.getElementById('collapseButton');
+    const minimizeButton = document.getElementById('minimizeButton');
+    const closeButton = document.getElementById('closeButton');
+    bindPress(collapseButton);
+    bindPress(minimizeButton);
+    bindPress(closeButton);
+
+    collapseButton.addEventListener('click', () => {
+      window.electronAPI.collapseViewChrome();
+    });
+    minimizeButton.addEventListener('click', () => {
+      window.electronAPI.minimizeActiveApp();
+    });
+    closeButton.addEventListener('click', () => {
+      window.electronAPI.closeActiveApp();
+    });
+
+    function applyTheme(theme) {
+      if (!theme) return;
+      const root = document.documentElement;
+      root.style.setProperty('--chrome-bg', theme.background);
+      root.style.setProperty('--chrome-color', theme.color);
+      root.style.setProperty('--chrome-border', theme.border);
+      document.body.classList.toggle('dark', theme.mode === 'dark');
+      document.body.classList.toggle('light', theme.mode !== 'dark');
+    }
+
+    window.electronAPI.onChromeExpanded((state) => {
+      const expanded = typeof state === 'boolean' ? state : state && state.expanded;
+      document.body.classList.toggle('expanded', !!expanded);
+      if (state && typeof state === 'object') {
+        applyTheme(state.theme);
+      }
+    });
+  </script>
+</body>
+</html>

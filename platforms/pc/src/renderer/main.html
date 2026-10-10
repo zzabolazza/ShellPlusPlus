@@ -15,16 +15,65 @@
       overflow: hidden;
     }
 
+    .app-loading {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: #f5f5f5;
+    }
+
+    .app-loading.visible {
+      display: flex;
+    }
+
+    .loading-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #333;
+      border-radius: 50%;
+      animation: loading-spin 0.8s linear infinite;
+    }
+
+    .loading-status {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .loading-name {
+      font-size: 18px;
+      color: #222;
+    }
+
+    .loading-error {
+      max-width: 420px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #a12622;
+      text-align: center;
+    }
+
+    @keyframes loading-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     /* 主内容区 */
     .content {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
       display: flex;
       justify-content: center;
       align-items: flex-start;
       padding: 20px;
-      height: 100vh;
     }
 
     /* 快捷键说明容器 */
@@ -625,11 +674,17 @@
   </style>
 </head>
 <body>
+  <div class="app-loading" id="appLoading">
+    <div class="loading-spinner" id="loadingSpinner"></div>
+    <div class="loading-status" id="loadingStatus">正在打开</div>
+    <div class="loading-name" id="loadingName"></div>
+    <div class="loading-error" id="loadingError"></div>
+  </div>
   <!-- 主内容区 -->
   <div class="content">
     <div class="app-grid" id="appGrid"></div>
     <div class="shortcut-help" id="shortcutHelp">
-      <button class="close-button" onclick="window.electronAPI.toggleShortcutHelp(false)">×</button>
+      <button class="close-button" onclick="window.electronAPI.closeShellOverlay()">×</button>
       <h1>Keyboard Shortcuts</h1>
       
       <div class="shortcut-group">
@@ -650,7 +705,7 @@
             <td><span class="shortcut">Alt + T</span></td>
             <td>
               Open application switcher
-              <div class="note">Hold Alt and press T repeatedly to cycle through open applications. Automatically restores minimized applications when switched to.</div>
+              <div class="note">Hold Alt and press T to highlight the next open application. Press T again to keep cycling. Release Alt, press Enter, or click an app to switch. Escape cancels.</div>
             </td>
           </tr>
         </table>
@@ -697,7 +752,7 @@
 
     <!-- 配置界面 -->
     <div class="config-panel" id="configPanel">
-      <button class="close-button" onclick="hideConfigPanel()">×</button>
+      <button class="close-button" onclick="window.electronAPI.closeShellOverlay()">×</button>
       <h1>Shell++ 设置</h1>
       
       <div class="config-tab-container">
@@ -791,8 +846,8 @@
       <!-- 按钮组 -->
       <div class="config-section">
         <div class="config-btn-group">
-          <button class="config-btn config-btn-warning" onclick="resetConfigPanel()">重置设置</button>
-          <button class="config-btn config-btn-secondary" onclick="hideConfigPanel()">取消</button>
+          <button class="config-btn config-btn-warning" onclick="resetConfigPanel()">重置代理</button>
+          <button class="config-btn config-btn-secondary" onclick="window.electronAPI.closeShellOverlay()">取消</button>
           <button class="config-btn config-btn-primary" onclick="saveConfigPanel(event)">保存设置</button>
         </div>
       </div>
@@ -997,6 +1052,49 @@
       }
     });
 
+    let currentOverlay = null;
+
+    function applyShellState(state) {
+      const appGrid = document.getElementById('appGrid');
+      const shortcutHelp = document.getElementById('shortcutHelp');
+      const configPanel = document.getElementById('configPanel');
+      const loading = document.getElementById('appLoading');
+      const enteringSettings = state.overlay === 'settings' && currentOverlay !== 'settings';
+
+      currentOverlay = state.overlay || null;
+
+      if (state.loadingApp && !state.overlay) {
+        appGrid.style.display = 'none';
+        shortcutHelp.classList.remove('visible');
+        configPanel.classList.remove('visible');
+        loading.classList.add('visible');
+        document.getElementById('loadingName').textContent = state.loadingApp;
+        document.getElementById('loadingStatus').textContent = state.loadingError ? '打开失败' : '正在打开';
+        document.getElementById('loadingSpinner').style.display = state.loadingError ? 'none' : 'block';
+        document.getElementById('loadingError').textContent = state.loadingError || '';
+        return;
+      }
+
+      loading.classList.remove('visible');
+
+      if (state.overlay === 'help') {
+        appGrid.style.display = 'none';
+        configPanel.classList.remove('visible');
+        shortcutHelp.classList.add('visible');
+      } else if (state.overlay === 'settings') {
+        appGrid.style.display = 'none';
+        shortcutHelp.classList.remove('visible');
+        configPanel.classList.add('visible');
+        if (enteringSettings) {
+          loadConfigPanel();
+        }
+      } else {
+        shortcutHelp.classList.remove('visible');
+        configPanel.classList.remove('visible');
+        appGrid.style.display = 'grid';
+      }
+    }
+
     // 键盘事件处理
     document.addEventListener('keydown', (e) => {
       // 显示应用选择器
@@ -1004,11 +1102,13 @@
         window.electronAPI.showAppSelector();
       }
       
-      // ESC键关闭添加应用表单
+      // ESC键关闭添加应用表单，否则关闭设置/帮助并恢复应用
       if (e.key === 'Escape') {
         const form = document.getElementById('addAppForm');
         if (form.classList.contains('visible')) {
           hideAddAppForm();
+        } else if (currentOverlay) {
+          window.electronAPI.closeShellOverlay();
         }
       }
     });
@@ -1020,53 +1120,9 @@
       renderApps(); // 重新渲染
     });
 
-    // 处理快捷键说明的显示/隐藏
-    window.electronAPI.onToggleShortcutHelp((show) => {
-      const appGrid = document.getElementById('appGrid');
-      const shortcutHelp = document.getElementById('shortcutHelp');
-      const configPanel = document.getElementById('configPanel');
-      
-      if (show) {
-        appGrid.style.display = 'none';
-        shortcutHelp.classList.add('visible');
-        configPanel.classList.remove('visible');
-      } else {
-        appGrid.style.display = 'grid';
-        shortcutHelp.classList.remove('visible');
-      }
+    window.electronAPI.onShellState((state) => {
+      applyShellState(state);
     });
-
-    // 处理配置面板的显示/隐藏
-    window.electronAPI.onToggleConfigPanel((show) => {
-      if (show) {
-        showConfigPanel();
-      } else {
-        hideConfigPanel();
-      }
-    });
-
-    // 显示配置面板
-    function showConfigPanel() {
-      const appGrid = document.getElementById('appGrid');
-      const shortcutHelp = document.getElementById('shortcutHelp');
-      const configPanel = document.getElementById('configPanel');
-      
-      appGrid.style.display = 'none';
-      shortcutHelp.classList.remove('visible');
-      configPanel.classList.add('visible');
-      
-      // 加载配置
-      loadConfigPanel();
-    }
-
-    // 隐藏配置面板
-    function hideConfigPanel() {
-      const appGrid = document.getElementById('appGrid');
-      const configPanel = document.getElementById('configPanel');
-      
-      appGrid.style.display = 'grid';
-      configPanel.classList.remove('visible');
-    }
 
     // 配置相关变量
     let currentConfigData = {};
@@ -1085,7 +1141,7 @@
     function populateConfigForm() {
       // 代理设置
       document.getElementById('configProxyEnabled').checked = currentConfigData.proxy?.enabled || false;
-      document.getElementById('configProxyType').value = currentConfigData.proxy?.type || 'socks5';
+      document.getElementById('configProxyType').value = currentConfigData.proxy?.type || 'http';
       document.getElementById('configProxyHost').value = currentConfigData.proxy?.host || '';
       document.getElementById('configProxyPort').value = currentConfigData.proxy?.port || '';
       document.getElementById('configProxyUsername').value = currentConfigData.proxy?.username || '';
@@ -1331,7 +1387,7 @@
 
     // 重置配置
     async function resetConfigPanel() {
-      if (confirm('确定要重置所有设置到默认值吗？')) {
+      if (confirm('确定要将代理设置恢复为默认值吗？这不会删除已添加的应用。')) {
         try {
           await window.electronAPI.resetConfig();
           await loadConfigPanel();

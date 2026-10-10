@@ -165,7 +165,11 @@ class ConfigManager {
 
     // 重置配置
     ipcMain.handle('reset-config', () => {
-      this.config = this.getDefaultConfig();
+      const defaults = this.getDefaultConfig();
+      this.config = {
+        ...this.config,
+        proxy: { ...defaults.proxy }
+      };
       this.saveConfig();
       this.applyConfig();
       return true;

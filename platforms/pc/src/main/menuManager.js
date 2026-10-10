@@ -9,21 +9,29 @@ class MenuManager {
 
     // 注册 IPC 处理程序
     ipcMain.handle('toggle-shortcut-help', (_, show) => {
-      this.isHelpVisible = show === undefined ? !this.isHelpVisible : show;
-      this.windowManager.mainWindow.webContents.send('toggle-shortcut-help', this.isHelpVisible);
+      if (show) {
+        this.windowManager.beginShellOverlay('help');
+      } else {
+        this.windowManager.endShellOverlay();
+      }
+      this.isHelpVisible = this.windowManager.shellOverlay === 'help';
     });
   }
 
-  // 显示快捷键帮助
-  showShortcutHelp() {
-    this.isHelpVisible = !this.isHelpVisible;
-    this.windowManager.mainWindow.webContents.send('toggle-shortcut-help', this.isHelpVisible);
+  syncHelpVisibility() {
+    this.isHelpVisible = this.windowManager.shellOverlay === 'help';
   }
 
-  // 打开设置面板
+  // 显示快捷键帮助。再次调用会关闭。
+  showShortcutHelp() {
+    this.windowManager.beginShellOverlay('help');
+    this.syncHelpVisibility();
+  }
+
+  // 打开设置面板。再次调用会关闭。
   openSettings(tab = null) {
-    // 发送事件到主窗口显示配置面板
-    this.windowManager.mainWindow.webContents.send('toggle-config-panel', true);
+    this.windowManager.beginShellOverlay('settings');
+    this.syncHelpVisibility();
   }
 
   createMenu() {

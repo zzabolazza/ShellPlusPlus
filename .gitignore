@@ -1,0 +1,57 @@
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.keystore
+!debug.keystore
+
+# Logs and temp
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tmp
+*.temp
+
+# Node (PC Electron + website)
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+coverage/
+.nyc_output/
+
+# Electron / packaging
+dist/
+out/
+release/
+
+# Next.js
+.next/
+.vercel
+*.tsbuildinfo
+
+# Android / Gradle
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+*.ap_
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
