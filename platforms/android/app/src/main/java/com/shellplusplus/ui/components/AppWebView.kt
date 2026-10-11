@@ -1,5 +1,8 @@
 package com.shellplusplus.ui.components
 
+import android.annotation.SuppressLint
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.*
@@ -9,14 +12,21 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.Modifier
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import kotlin.math.abs
+import kotlin.math.hypot
 
+@SuppressLint("ClickableViewAccessibility")
 @Composable
 fun AppWebView(
     url: String, 
     modifier: Modifier = Modifier,
-    onTitleChanged: (String) -> Unit = {}
+    onTitleChanged: (String) -> Unit = {},
+    onDoubleTap: () -> Unit = {},
+    onTwoFingerSwipe: (delta: Int) -> Unit = {}
 ) {
     var webView by remember { mutableStateOf<WebView?>(null) }
+    val currentOnDoubleTap by rememberUpdatedState(onDoubleTap)
+    val currentOnTwoFingerSwipe by rememberUpdatedState(onTwoFingerSwipe)
     
     // 处理返回键
     BackHandler {
@@ -175,6 +185,85 @@ fun AppWebView(
                 isVerticalScrollBarEnabled = true
                 isHorizontalScrollBarEnabled = true
                 overScrollMode = android.view.View.OVER_SCROLL_IF_CONTENT_SCROLLS
+
+                var consumeDoubleTap = false
+                val doubleTapDetector = GestureDetector(
+                    ctx,
+                    object : GestureDetector.SimpleOnGestureListener() {
+                        override fun onDown(e: MotionEvent): Boolean = true
+
+                        override fun onDoubleTap(e: MotionEvent): Boolean {
+                            consumeDoubleTap = true
+                            currentOnDoubleTap()
+                            return true
+                        }
+                    }
+                )
+                val swipeSlop = 80f * ctx.resources.displayMetrics.density
+                var trackingSwipe = false
+                var swipeIsPinch = false
+                var swipeFired = false
+                var startX0 = 0f
+                var startY0 = 0f
+                var startX1 = 0f
+                var startY1 = 0f
+                var startSpan = 1f
+                setOnTouchListener { _, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_POINTER_DOWN -> {
+                            if (event.pointerCount == 2) {
+                                startX0 = event.getX(0)
+                                startY0 = event.getY(0)
+                                startX1 = event.getX(1)
+                                startY1 = event.getY(1)
+                                startSpan = hypot(startX1 - startX0, startY1 - startY0).coerceAtLeast(1f)
+                                trackingSwipe = true
+                                swipeIsPinch = false
+                                swipeFired = false
+                            } else {
+                                trackingSwipe = false
+                                swipeIsPinch = true
+                            }
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            if (trackingSwipe && !swipeIsPinch && !swipeFired && event.pointerCount == 2) {
+                                val x0 = event.getX(0)
+                                val y0 = event.getY(0)
+                                val x1 = event.getX(1)
+                                val y1 = event.getY(1)
+                                val span = hypot(x1 - x0, y1 - y0)
+                                if (abs(span / startSpan - 1f) > 0.15f) {
+                                    swipeIsPinch = true
+                                } else {
+                                    val dx = (x0 + x1) / 2f - (startX0 + startX1) / 2f
+                                    val dy = (y0 + y1) / 2f - (startY0 + startY1) / 2f
+                                    if (abs(dx) >= swipeSlop && abs(dx) > abs(dy) * 1.5f) {
+                                        swipeFired = true
+                                        currentOnTwoFingerSwipe(if (dx < 0f) 1 else -1)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    doubleTapDetector.onTouchEvent(event)
+                    val consume = consumeDoubleTap || swipeFired
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_POINTER_UP -> {
+                            if (event.pointerCount <= 2) {
+                                trackingSwipe = false
+                                swipeIsPinch = false
+                                swipeFired = false
+                            }
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            trackingSwipe = false
+                            swipeIsPinch = false
+                            swipeFired = false
+                            consumeDoubleTap = false
+                        }
+                    }
+                    consume
+                }
                 
                 // 加载URL
                 loadUrl(url)

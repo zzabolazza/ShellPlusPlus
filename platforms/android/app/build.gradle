@@ -1,8 +1,9 @@
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
-    id 'kotlin-kapt'
-    id 'dagger.hilt.android.plugin'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+    id 'org.jetbrains.kotlin.kapt'
+    id 'com.google.dagger.hilt.android'
 }
 
 android {
@@ -40,10 +41,6 @@ android {
 
     buildFeatures {
         compose true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion compose_version
     }
 
     packaging {
@@ -100,6 +97,9 @@ dependencies {
     
     // Coil for image loading
     implementation 'io.coil-kt:coil-compose:2.5.0'
+
+    // 从应用图标提取主色
+    implementation 'androidx.palette:palette-ktx:1.0.0'
 
     // 测试依赖
     testImplementation 'junit:junit:4.13.2'

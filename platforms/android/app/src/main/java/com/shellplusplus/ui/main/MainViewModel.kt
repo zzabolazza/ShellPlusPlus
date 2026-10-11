@@ -2,6 +2,7 @@ package com.shellplusplus.ui.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shellplusplus.data.AppConfig
 import com.shellplusplus.data.AppInfo
 import com.shellplusplus.data.AppManager
 import com.shellplusplus.service.AppSwitchGestureDetector
@@ -34,6 +35,9 @@ class MainViewModel @Inject constructor(
 
     private val _showAddDialog = MutableStateFlow(false)
     val showAddDialog: StateFlow<Boolean> = _showAddDialog
+
+    private val _editingApp = MutableStateFlow<AppInfo?>(null)
+    val editingApp: StateFlow<AppInfo?> = _editingApp
 
     private val _showConfigDialog = MutableStateFlow(false)
     val showConfigDialog: StateFlow<Boolean> = _showConfigDialog
@@ -77,9 +81,37 @@ class MainViewModel @Inject constructor(
         _showAddDialog.value = false
     }
 
+    fun showEditDialog(app: AppInfo) {
+        _editingApp.value = app
+    }
+
+    fun hideEditDialog() {
+        _editingApp.value = null
+    }
+
     fun addApp(name: String, url: String) {
         viewModelScope.launch {
             appManager.addApp(name, url)
+            refreshApps()
+        }
+    }
+
+    fun updateApp(name: String, url: String) {
+        val editing = _editingApp.value ?: return
+        viewModelScope.launch {
+            appManager.updateApp(
+                AppConfig(
+                    packageName = editing.packageName,
+                    name = name,
+                    url = url
+                )
+            )
+            _selectedApp.value?.let { selected ->
+                if (selected.packageName == editing.packageName) {
+                    _selectedApp.value = selected.copy(name = name, url = url)
+                }
+            }
+            _editingApp.value = null
             refreshApps()
         }
     }
@@ -111,6 +143,19 @@ class MainViewModel @Inject constructor(
 
     fun selectApp(app: AppInfo) {
         _selectedApp.value = app
+    }
+
+    fun selectRelativeApp(delta: Int): Boolean {
+        if (delta == 0) return false
+        val list = _apps.value
+        if (list.size < 2) return false
+        val current = _selectedApp.value ?: return false
+        val index = list.indexOfFirst { it.packageName == current.packageName }
+        if (index < 0) return false
+        val next = list[Math.floorMod(index + delta, list.size)]
+        if (next.packageName == current.packageName) return false
+        selectApp(next)
+        return true
     }
 
     fun startGestureDetection() {
