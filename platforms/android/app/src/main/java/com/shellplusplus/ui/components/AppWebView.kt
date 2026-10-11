@@ -1,6 +1,7 @@
 package com.shellplusplus.ui.components
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ViewGroup
@@ -20,16 +21,21 @@ import kotlin.math.hypot
 fun AppWebView(
     url: String, 
     modifier: Modifier = Modifier,
+    active: Boolean = true,
     onTitleChanged: (String) -> Unit = {},
     onDoubleTap: () -> Unit = {},
-    onTwoFingerSwipe: (delta: Int) -> Unit = {}
+    onShowSwitcher: () -> Unit = {},
+    onTwoFingerSwipeDown: () -> Unit = {},
+    touchEnabled: Boolean = true
 ) {
     var webView by remember { mutableStateOf<WebView?>(null) }
     val currentOnDoubleTap by rememberUpdatedState(onDoubleTap)
-    val currentOnTwoFingerSwipe by rememberUpdatedState(onTwoFingerSwipe)
+    val currentOnShowSwitcher by rememberUpdatedState(onShowSwitcher)
+    val currentOnTwoFingerSwipeDown by rememberUpdatedState(onTwoFingerSwipeDown)
+    val currentTouchEnabled by rememberUpdatedState(touchEnabled)
     
     // 处理返回键
-    BackHandler {
+    BackHandler(enabled = active) {
         webView?.let { view ->
             if (view.canGoBack()) {
                 view.goBack()
@@ -39,7 +45,7 @@ fun AppWebView(
     
     AndroidView(
         factory = { ctx ->
-            WebView(ctx).apply {
+            PassThroughWebView(ctx).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
@@ -202,7 +208,7 @@ fun AppWebView(
                 val swipeSlop = 80f * ctx.resources.displayMetrics.density
                 var trackingSwipe = false
                 var swipeIsPinch = false
-                var swipeFired = false
+                var gestureMode = 0
                 var startX0 = 0f
                 var startY0 = 0f
                 var startX1 = 0f
@@ -219,53 +225,58 @@ fun AppWebView(
                                 startSpan = hypot(startX1 - startX0, startY1 - startY0).coerceAtLeast(1f)
                                 trackingSwipe = true
                                 swipeIsPinch = false
-                                swipeFired = false
+                                gestureMode = 0
                             } else {
                                 trackingSwipe = false
                                 swipeIsPinch = true
                             }
                         }
                         MotionEvent.ACTION_MOVE -> {
-                            if (trackingSwipe && !swipeIsPinch && !swipeFired && event.pointerCount == 2) {
+                            if (trackingSwipe && !swipeIsPinch && event.pointerCount == 2 && gestureMode != 2) {
                                 val x0 = event.getX(0)
                                 val y0 = event.getY(0)
                                 val x1 = event.getX(1)
                                 val y1 = event.getY(1)
                                 val span = hypot(x1 - x0, y1 - y0)
-                                if (abs(span / startSpan - 1f) > 0.15f) {
+                                if (gestureMode == 0 && abs(span / startSpan - 1f) > 0.15f) {
                                     swipeIsPinch = true
                                 } else {
                                     val dx = (x0 + x1) / 2f - (startX0 + startX1) / 2f
                                     val dy = (y0 + y1) / 2f - (startY0 + startY1) / 2f
-                                    if (abs(dx) >= swipeSlop && abs(dx) > abs(dy) * 1.5f) {
-                                        swipeFired = true
-                                        currentOnTwoFingerSwipe(if (dx < 0f) 1 else -1)
+                                    val horizontal = abs(dx) >= swipeSlop && abs(dx) > abs(dy) * 1.5f
+                                    val swipeDown = dy >= swipeSlop && dy > abs(dx) * 1.5f
+                                    if (gestureMode == 0 && horizontal) {
+                                        gestureMode = 1
+                                        currentOnShowSwitcher()
+                                    } else if (gestureMode == 0 && swipeDown) {
+                                        gestureMode = 2
+                                        currentOnTwoFingerSwipeDown()
                                     }
                                 }
                             }
                         }
                     }
                     doubleTapDetector.onTouchEvent(event)
-                    val consume = consumeDoubleTap || swipeFired
                     when (event.actionMasked) {
                         MotionEvent.ACTION_POINTER_UP -> {
                             if (event.pointerCount <= 2) {
                                 trackingSwipe = false
                                 swipeIsPinch = false
-                                swipeFired = false
+                                gestureMode = 0
                             }
                         }
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                             trackingSwipe = false
                             swipeIsPinch = false
-                            swipeFired = false
+                            gestureMode = 0
                             consumeDoubleTap = false
                         }
                     }
-                    consume
+                    val blockPage = !currentTouchEnabled
+                    consumeDoubleTap || gestureMode != 0 || blockPage
                 }
                 
-                // 加载URL
+                tag = url
                 loadUrl(url)
                 
                 // 保存WebView引用
@@ -273,11 +284,24 @@ fun AppWebView(
             }
         },
         update = { webViewInstance ->
-            // 每次更新都重新加载URL
-            webViewInstance.loadUrl(url)
-            // 更新WebView引用
+            if (webViewInstance.tag != url) {
+                webViewInstance.tag = url
+                webViewInstance.loadUrl(url)
+            }
+            webViewInstance.visibility = if (active) android.view.View.VISIBLE else android.view.View.INVISIBLE
+            (webViewInstance as PassThroughWebView).touchEnabled = currentTouchEnabled
             webView = webViewInstance
         },
+        onRelease = { it.destroy() },
         modifier = modifier
     )
+}
+
+private class PassThroughWebView(context: Context) : WebView(context) {
+    var touchEnabled: Boolean = true
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (!touchEnabled) return false
+        return super.dispatchTouchEvent(ev)
+    }
 }

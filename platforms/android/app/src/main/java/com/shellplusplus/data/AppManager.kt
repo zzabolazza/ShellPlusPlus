@@ -1,14 +1,10 @@
 package com.shellplusplus.data
 
-import android.content.Context
-import android.content.pm.PackageManager
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class AppManager @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val configManager: ConfigManager
 ) {
     suspend fun getApps(): List<AppInfo> {
@@ -30,25 +26,13 @@ class AppManager @Inject constructor(
         )
     }
 
-    suspend fun addApp(name: String, url: String) {
-        val packageName = name.lowercase().replace(" ", "-")
-        val newApp = AppConfig(
-            packageName = packageName,
-            name = name,
-            url = url
-        )
-        
-        // 保存到配置文件
-        configManager.addApp(newApp)
+    fun getSourceUrl(): String = configManager.getSourceUrl()
+
+    fun setSourceUrl(url: String) {
+        configManager.setSourceUrl(url)
     }
 
-    suspend fun removeApp(packageName: String) {
-        configManager.removeApp(packageName)
-    }
-
-    suspend fun updateApp(app: AppConfig) {
-        configManager.updateApp(app)
-    }
+    suspend fun syncApps(): Boolean = configManager.syncFromSource()
 
     suspend fun toggleAppEnabled(app: AppInfo) {
         val enabledApps = configManager.getAppConfigs().toMutableSet()

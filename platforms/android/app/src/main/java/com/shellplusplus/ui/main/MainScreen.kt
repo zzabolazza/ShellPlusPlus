@@ -1,6 +1,14 @@
 package com.shellplusplus.ui.main
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -29,9 +37,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -67,14 +77,17 @@ fun MainScreen(
     viewModel: MainViewModel = hiltViewModel()
 ) {
     val apps by viewModel.apps.collectAsState()
+    val openedApps by viewModel.openedApps.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedApp by viewModel.selectedApp.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var revealedPackage by remember { mutableStateOf<String?>(null) }
+    var switcherIndex by remember { mutableStateOf<Int?>(null) }
+    var displayedSwitcherIndex by remember { mutableIntStateOf(0) }
     
     // 当前页面标题状态
-    var currentPageTitle by remember { mutableStateOf<String?>(null) }
+    var pageTitles by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val currentPageTitle = selectedApp?.packageName?.let { pageTitles[it] }
     
     // 顶部菜单栏自动隐藏状态
     var isTopBarVisible by remember { mutableStateOf(true) }
@@ -116,18 +129,12 @@ fun MainScreen(
         }
     }
     
-    // 当选择的应用程序改变时，重置页面标题
-    LaunchedEffect(selectedApp) {
-        currentPageTitle = null
-    }
-    
     // 初始化时显示顶部菜单栏并开始计时
     LaunchedEffect(Unit) {
         hideTopBarAfterDelay()
     }
 
     val drawerWidth = 300.dp
-    val addAccent = rememberLogoColor(selectedApp?.url.orEmpty())
     val density = LocalDensity.current
     val viewConfiguration = LocalViewConfiguration.current
     val doubleTapTimeout = viewConfiguration.doubleTapTimeoutMillis
@@ -204,35 +211,20 @@ fun MainScreen(
                         } else {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
+                                contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
                                 state = rememberLazyListState()
                             ) {
                                 items(
                                     items = apps,
                                     key = { it.packageName }
                                 ) { app ->
-                                    val revealed = revealedPackage == app.packageName
-                                    SwipeRevealAppRow(
-                                        revealed = revealed,
-                                        onRevealedChange = { open ->
-                                            revealedPackage = if (open) app.packageName else null
-                                        },
-                                        onClick = {
-                                            if (revealed) {
-                                                revealedPackage = null
-                                            } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
                                                 viewModel.selectApp(app)
                                                 scope.launch { drawerState.close() }
                                             }
-                                        },
-                                        onEdit = {
-                                            revealedPackage = null
-                                            viewModel.showEditDialog(app)
-                                        },
-                                        onDelete = {
-                                            revealedPackage = null
-                                            viewModel.showDeleteConfirmation(app)
-                                        }
                                     ) {
                                         AppItem(
                                             app = app,
@@ -241,23 +233,6 @@ fun MainScreen(
                                     }
                                 }
                             }
-                        }
-                        
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(end = 16.dp, bottom = 16.dp)
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(lerp(MaterialTheme.colorScheme.surface, addAccent, 0.22f))
-                                .clickable { viewModel.showAddDialog() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "添加应用",
-                                tint = addAccent
-                            )
                         }
                     }
                 }
@@ -353,147 +328,104 @@ fun MainScreen(
                         }
                     }
             ) {
-                // 网页内容区域
-                selectedApp?.let { app ->
-                    AppWebView(
-                        url = app.url,
-                        modifier = Modifier.fillMaxSize(),
-                        onTitleChanged = { title ->
-                            currentPageTitle = title
-                        },
-                        onDoubleTap = {
-                            scope.launch { drawerState.open() }
-                        },
-                        onTwoFingerSwipe = { delta ->
-                            val drawerOpen = drawerState.currentValue == DrawerValue.Open ||
-                                drawerState.targetValue == DrawerValue.Open
-                            if (!drawerOpen && viewModel.selectRelativeApp(delta)) {
-                                showTopBar()
-                            }
-                        }
-                    )
-                } ?: run {
+                if (openedApps.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("请从左侧菜单选择一个应用")
                     }
+                } else {
+                    openedApps.forEach { app ->
+                        key(app.packageName) {
+                            val active = app.packageName == selectedApp?.packageName
+                            AppWebView(
+                                url = app.url,
+                                active = active,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .zIndex(if (active) 1f else 0f),
+                                onTitleChanged = { title ->
+                                    pageTitles = pageTitles + (app.packageName to title)
+                                },
+                                onDoubleTap = {
+                                    scope.launch { drawerState.open() }
+                                },
+                                touchEnabled = switcherIndex == null,
+                                onShowSwitcher = {
+                                    val drawerOpen = drawerState.currentValue == DrawerValue.Open ||
+                                        drawerState.targetValue == DrawerValue.Open
+                                    if (!drawerOpen && openedApps.size > 1 && switcherIndex == null) {
+                                        val current = openedApps.indexOfFirst {
+                                            it.packageName == selectedApp?.packageName
+                                        }.coerceAtLeast(0)
+                                        switcherIndex = current
+                                        displayedSwitcherIndex = current
+                                    }
+                                },
+                                onTwoFingerSwipeDown = {
+                                    val drawerOpen = drawerState.currentValue == DrawerValue.Open ||
+                                        drawerState.targetValue == DrawerValue.Open
+                                    if (!drawerOpen && selectedApp != null) {
+                                        switcherIndex = null
+                                        viewModel.closeSelectedApp()
+                                        showTopBar()
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+                AnimatedVisibility(
+                    visible = switcherIndex != null && openedApps.size > 1,
+                    enter = fadeIn(tween(200)),
+                    exit = fadeOut(tween(200)),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(2f)
+                ) {
+                    OpenAppSwitcher(
+                        apps = openedApps,
+                        selectedIndex = displayedSwitcherIndex,
+                        onSelect = { app ->
+                            viewModel.selectApp(app)
+                            showTopBar()
+                            switcherIndex = null
+                        },
+                        onDismiss = { switcherIndex = null }
+                    )
                 }
             }
         }
         
-        // 删除确认对话框
-        val showDeleteDialog by viewModel.showDeleteDialog.collectAsState()
-        if (showDeleteDialog) {
+        val showConfigDialog by viewModel.showConfigDialog.collectAsState()
+        val sourceUrl by viewModel.sourceUrl.collectAsState()
+        if (showConfigDialog) {
+            var sourceText by remember(sourceUrl) { mutableStateOf(sourceUrl) }
             AlertDialog(
-                onDismissRequest = { viewModel.hideDeleteConfirmation() },
-                title = { Text("确认删除") },
+                onDismissRequest = { viewModel.hideConfigDialog() },
+                title = { Text("应用列表源") },
                 text = {
-                    val appToDelete by viewModel.appToDelete.collectAsState()
-                    Text("确定要删除 ${appToDelete?.name} 吗？")
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            viewModel.deleteApp()
-                            viewModel.hideDeleteConfirmation()
-                        }
-                    ) {
-                        Text("删除")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.hideDeleteConfirmation() }) {
-                        Text("取消")
-                    }
-                }
-            )
-        }
-
-        // 添加或编辑应用
-        val showAddDialog by viewModel.showAddDialog.collectAsState()
-        val editingApp by viewModel.editingApp.collectAsState()
-        if (showAddDialog || editingApp != null) {
-            val editing = editingApp
-            var name by remember(editing?.packageName) { mutableStateOf(editing?.name.orEmpty()) }
-            var url by remember(editing?.packageName) { mutableStateOf(editing?.url.orEmpty()) }
-            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            val dismissForm = {
-                if (editing != null) viewModel.hideEditDialog() else viewModel.hideAddDialog()
-            }
-
-            ModalBottomSheet(
-                onDismissRequest = dismissForm,
-                sheetState = sheetState
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 24.dp)
-                        .imePadding()
-                ) {
-                    Text(
-                        text = if (editing != null) "编辑应用" else "添加应用",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("应用名称") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = url,
-                        onValueChange = { url = it },
-                        label = { Text("应用网址") },
+                        value = sourceText,
+                        onValueChange = { sourceText = it },
+                        label = { Text("源地址") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = dismissForm) {
-                            Text("取消")
-                        }
-                        TextButton(
-                            onClick = {
-                                if (name.isNotBlank() && url.isNotBlank()) {
-                                    if (editing != null) {
-                                        viewModel.updateApp(name, url)
-                                    } else {
-                                        viewModel.addApp(name, url)
-                                        viewModel.hideAddDialog()
-                                    }
-                                }
-                            },
-                            enabled = name.isNotBlank() && url.isNotBlank()
-                        ) {
-                            Text(if (editing != null) "保存" else "添加")
-                        }
-                    }
-                }
-            }
-        }
-        
-        // 配置对话框
-        val showConfigDialog by viewModel.showConfigDialog.collectAsState()
-        if (showConfigDialog) {
-            AlertDialog(
-                onDismissRequest = { viewModel.hideConfigDialog() },
-                title = { Text("配置") },
-                text = { Text("此功能正在开发中，敬请期待...") },
+                },
                 confirmButton = {
+                    TextButton(
+                        onClick = { viewModel.saveSourceUrl(sourceText) },
+                        enabled = sourceText.isNotBlank()
+                    ) {
+                        Text("保存")
+                    }
+                },
+                dismissButton = {
                     TextButton(onClick = { viewModel.hideConfigDialog() }) {
-                        Text("确定")
+                        Text("取消")
                     }
                 }
             )
@@ -519,6 +451,134 @@ fun MainScreen(
                 }
         )
     }
+    }
+}
+
+@Composable
+private fun OpenAppSwitcher(
+    apps: List<AppInfo>,
+    selectedIndex: Int,
+    onSelect: (AppInfo) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val dismissInteraction = remember { MutableInteractionSource() }
+    val cardInteraction = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.28f))
+            .clickable(
+                interactionSource = dismissInteraction,
+                indication = null,
+                onClick = onDismiss
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .fillMaxWidth()
+                .widthIn(max = 360.dp)
+                .clickable(
+                    interactionSource = cardInteraction,
+                    indication = null,
+                    onClick = {}
+                )
+        ) {
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                apps.forEachIndexed { index, app ->
+                    SwitcherAppIcon(
+                        app = app,
+                        selected = index == selectedIndex,
+                        onClick = { onSelect(app) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SwitcherAppIcon(
+    app: AppInfo,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val faviconUrl = faviconUrlFor(app.url)
+    val imageRequest = remember(faviconUrl) {
+        ImageRequest.Builder(context)
+            .data(faviconUrl)
+            .allowHardware(false)
+            .build()
+    }
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(selected) {
+        if (selected) {
+            scale.snapTo(1f)
+            scale.animateTo(
+                1.15f,
+                keyframes {
+                    durationMillis = 300
+                    1f at 0
+                    1.2f at 150
+                    1.15f at 300
+                }
+            )
+        } else {
+            scale.animateTo(1f, tween(300))
+        }
+    }
+    val alpha by animateFloatAsState(
+        targetValue = if (selected) 1f else 0.6f,
+        animationSpec = tween(300),
+        label = "switcherAlpha"
+    )
+
+    Column(
+        modifier = Modifier
+            .width(80.dp)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+                this.alpha = alpha
+            }
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = app.name,
+                modifier = Modifier.size(36.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = app.name,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -589,112 +649,3 @@ fun AppItem(
     }
 }
 
-private val RevealActionWidth = 72.dp
-
-@Composable
-private fun SwipeRevealAppRow(
-    revealed: Boolean,
-    onRevealedChange: (Boolean) -> Unit,
-    onClick: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    content: @Composable () -> Unit
-) {
-    val density = LocalDensity.current
-    val revealPx = with(density) { (RevealActionWidth * 2).toPx() }
-    val revealPxState = rememberUpdatedState(revealPx)
-    val offset = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
-    val dragState = rememberDraggableState { delta ->
-        scope.launch {
-            offset.snapTo((offset.value + delta).coerceIn(-revealPxState.value, 0f))
-        }
-    }
-
-    LaunchedEffect(revealed) {
-        offset.animateTo(if (revealed) -revealPx else 0f)
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clipToBounds()
-    ) {
-        Row(
-            modifier = Modifier.matchParentSize(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            RevealActionButton(
-                label = "编辑",
-                icon = Icons.Default.Edit,
-                background = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                onClick = onEdit
-            )
-            RevealActionButton(
-                label = "删除",
-                icon = Icons.Default.Delete,
-                background = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
-                onClick = onDelete
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(offset.value.roundToInt(), 0) }
-                .background(MaterialTheme.colorScheme.surface)
-                .clickable(onClick = onClick)
-                .draggable(
-                    orientation = Orientation.Horizontal,
-                    state = dragState,
-                    onDragStarted = {
-                        scope.launch { offset.stop() }
-                    },
-                    onDragStopped = {
-                        val open = offset.value < -revealPxState.value / 2f
-                        if (open == revealed) {
-                            scope.launch {
-                                offset.animateTo(if (open) -revealPxState.value else 0f)
-                            }
-                        } else {
-                            onRevealedChange(open)
-                        }
-                    }
-                )
-        ) {
-            content()
-        }
-    }
-}
-
-@Composable
-private fun RevealActionButton(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    background: Color,
-    contentColor: Color,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .width(RevealActionWidth)
-            .fillMaxHeight()
-            .background(background)
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = contentColor,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = label,
-            color = contentColor,
-            style = MaterialTheme.typography.labelMedium
-        )
-    }
-}

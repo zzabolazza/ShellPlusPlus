@@ -36,10 +36,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAppManager(
-        @ApplicationContext context: Context,
         configManager: ConfigManager
     ): AppManager {
-        return AppManager(context, configManager)
+        return AppManager(configManager)
     }
 
     @Provides

@@ -1,0 +1,167 @@
+[
+  {
+    "packageName": "chatgpt",
+    "name": "ChatGPT",
+    "url": "https://chatgpt.com/"
+  },
+  {
+    "packageName": "perplexity",
+    "name": "Perplexity",
+    "url": "https://www.perplexity.ai/"
+  },
+  {
+    "packageName": "claude",
+    "name": "Claude",
+    "url": "https://claude.ai"
+  },
+  {
+    "packageName": "grok",
+    "name": "Grok",
+    "url": "https://grok.com"
+  },
+  {
+    "packageName": "yuewen",
+    "name": "跃问",
+    "url": "https://yuewen.cn"
+  },
+  {
+    "packageName": "kimi",
+    "name": "Kimi",
+    "url": "https://kimi.moonshot.cn/"
+  },
+  {
+    "packageName": "tiangong",
+    "name": "天工",
+    "url": "https://www.tiangong.cn/"
+  },
+  {
+    "packageName": "doubao",
+    "name": "豆包",
+    "url": "https://www.doubao.com/chat/"
+  },
+  {
+    "packageName": "mistral",
+    "name": "Mistral",
+    "url": "https://chat.mistral.ai/chat"
+  },
+  {
+    "packageName": "yuanbao",
+    "name": "元宝",
+    "url": "https://yuanbao.tencent.com"
+  },
+  {
+    "packageName": "tongyi",
+    "name": "通义千问",
+    "url": "https://tongyi.aliyun.com"
+  },
+  {
+    "packageName": "gemini",
+    "name": "Gemini",
+    "url": "https://gemini.google.com"
+  },
+  {
+    "packageName": "duckai",
+    "name": "DuckAI",
+    "url": "https://duckduckgo.com/?q=DuckDuckGo+AI+Chat&ia=chat&duckai=1"
+  },
+  {
+    "packageName": "chatglm",
+    "name": "ChatGLM",
+    "url": "https://chatglm.cn"
+  },
+  {
+    "packageName": "hailuoai",
+    "name": "海螺AI",
+    "url": "https://hailuoai.com/"
+  },
+  {
+    "packageName": "meta",
+    "name": "Meta AI",
+    "url": "https://www.meta.ai/"
+  },
+  {
+    "packageName": "poe",
+    "name": "Poe",
+    "url": "https://www.poe.com/"
+  },
+  {
+    "packageName": "deepseek",
+    "name": "Deepseek",
+    "url": "https://chat.deepseek.com/"
+  },
+  {
+    "packageName": "yiyan",
+    "name": "文心一言",
+    "url": "https://yiyan.baidu.com/"
+  },
+  {
+    "packageName": "baidu",
+    "name": "百度AI",
+    "url": "https://chat.baidu.com/"
+  },
+  {
+    "packageName": "copilot",
+    "name": "Microsoft Copilot",
+    "url": "https://copilot.microsoft.com/"
+  },
+  {
+    "packageName": "monica",
+    "name": "Monica",
+    "url": "https://monica.im/"
+  },
+  {
+    "packageName": "github-copilot",
+    "name": "GitHub Copilot",
+    "url": "https://github.com/copilot"
+  },
+  {
+    "packageName": "z",
+    "name": "Z.ai",
+    "url": "https://z.ai"
+  },
+  {
+    "packageName": "wps",
+    "name": "WPS AI",
+    "url": "https://copilot.wps.cn/"
+  },
+  {
+    "packageName": "huggingface",
+    "name": "Hugging Face",
+    "url": "https://huggingface.co/chat/"
+  },
+  {
+    "packageName": "openrouter",
+    "name": "OpenRouter",
+    "url": "https://openrouter.ai/"
+  },
+  {
+    "packageName": "youware",
+    "name": "YouWare",
+    "url": "https://www.youware.com/"
+  },
+  {
+    "packageName": "replit",
+    "name": "Replit",
+    "url": "https://replit.com/"
+  },
+  {
+    "packageName": "you",
+    "name": "You",
+    "url": "https://you.com/?chatMode=default"
+  },
+  {
+    "packageName": "N",
+    "name": "纳米搜索",
+    "url": "https://www.n.cn/"
+  },
+  {
+    "packageName": "xinghuo",
+    "name": "讯飞星火",
+    "url": "https://xinghuo.xfyun.cn/"
+  },
+  {
+    "packageName": "metaso",
+    "name": "秘塔AI",
+    "url": "https://metaso.cn/"
+  }
+]
