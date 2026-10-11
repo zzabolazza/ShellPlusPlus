@@ -3,10 +3,8 @@ const { BrowserWindow, BrowserView, screen } = require('electron');
 const path = require('path');
 const electronLog = require('electron-log');
 
-const VIEW_CHROME_EXPANDED_WIDTH = 148;
-const VIEW_CHROME_EXPANDED_HEIGHT = 52;
-const VIEW_CHROME_COLLAPSED_WIDTH = 64;
-const VIEW_CHROME_COLLAPSED_HEIGHT = 18;
+const VIEW_CHROME_WIDTH = 148;
+const VIEW_CHROME_HEIGHT = 52;
 const CHROME_HOT_WIDTH = 320;
 const CHROME_HOT_HEIGHT = 40;
 const CHROME_COLLAPSE_DELAY = 400;
@@ -289,8 +287,8 @@ class WindowManager {
     }
 
     this.viewChrome = new BrowserWindow({
-      width: VIEW_CHROME_COLLAPSED_WIDTH,
-      height: VIEW_CHROME_COLLAPSED_HEIGHT,
+      width: VIEW_CHROME_WIDTH,
+      height: VIEW_CHROME_HEIGHT,
       parent: this.mainWindow,
       frame: false,
       transparent: true,
@@ -313,6 +311,7 @@ class WindowManager {
       }
     });
 
+    this.setChromeMousePassthrough(!this.chromeExpanded);
     this.viewChrome.loadFile(path.join(__dirname, '../renderer/viewChrome.html'));
     this.viewChrome.webContents.on('did-finish-load', () => {
       this.sendChromeState();
@@ -324,10 +323,16 @@ class WindowManager {
   }
 
   chromeSize() {
-    if (this.chromeExpanded) {
-      return { width: VIEW_CHROME_EXPANDED_WIDTH, height: VIEW_CHROME_EXPANDED_HEIGHT };
+    return { width: VIEW_CHROME_WIDTH, height: VIEW_CHROME_HEIGHT };
+  }
+
+  setChromeMousePassthrough(passthrough) {
+    if (!this.viewChrome || this.viewChrome.isDestroyed()) return;
+    if (passthrough) {
+      this.viewChrome.setIgnoreMouseEvents(true, { forward: true });
+    } else {
+      this.viewChrome.setIgnoreMouseEvents(false);
     }
-    return { width: VIEW_CHROME_COLLAPSED_WIDTH, height: VIEW_CHROME_COLLAPSED_HEIGHT };
   }
 
   positionViewChrome() {
@@ -373,7 +378,7 @@ class WindowManager {
     this.stopChromeHoverWatch();
     if (this.chromeExpanded) {
       this.chromeExpanded = false;
-      this.positionViewChrome();
+      this.setChromeMousePassthrough(true);
       this.sendChromeState();
     }
     if (this.viewChrome && !this.viewChrome.isDestroyed() && this.viewChrome.isVisible()) {
@@ -449,14 +454,14 @@ class WindowManager {
   expandChrome() {
     if (this.chromeExpanded) return;
     this.chromeExpanded = true;
-    this.positionViewChrome();
+    this.setChromeMousePassthrough(false);
     this.sendChromeState();
   }
 
   collapseChrome() {
     if (!this.chromeExpanded) return;
     this.chromeExpanded = false;
-    this.positionViewChrome();
+    this.setChromeMousePassthrough(true);
     this.sendChromeState();
   }
 
