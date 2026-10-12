@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addApp: (app) => ipcRenderer.invoke('add-app', app),
   removeApp: (appName) => ipcRenderer.invoke('remove-app', appName),
   updateApp: (appName, newApp) => ipcRenderer.invoke('update-app', appName, newApp),
+  syncAppList: () => ipcRenderer.invoke('sync-app-list'),
 
   // 事件监听
   onActiveAppChanged: (callback) => {

@@ -839,9 +839,14 @@
         </div>
       </div>
 
-      
-
-
+      <div class="config-section">
+        <h2 class="config-section-title">应用列表源</h2>
+        <div class="config-form-group">
+          <label for="configAppListSource" class="config-form-label">源地址</label>
+          <input type="url" id="configAppListSource" class="config-form-input" placeholder="https://raw.githubusercontent.com/zzabolazza/ShellPlusPlus/main/apps.json">
+          <div class="config-form-help">每次启动从这里同步应用列表。默认是 GitHub 上的 apps.json。</div>
+        </div>
+      </div>
 
       <!-- 按钮组 -->
       <div class="config-section">
@@ -852,6 +857,7 @@
         </div>
       </div>
     </div>
+  </div>
 
     <!-- 添加应用表单 -->
     <div class="add-app-form" id="addAppForm">
@@ -890,35 +896,23 @@
     async function renderApps() {
       const apps = await window.electronAPI.getApps();
       const appGrid = document.getElementById('appGrid');
-      
+
       apps.forEach(app => {
         const appItem = document.createElement('div');
         appItem.className = 'app-item';
-
-        // 删除按钮
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'delete-button';
-        deleteButton.innerHTML = '×';
-        deleteButton.onclick = (e) => {
-          e.stopPropagation();
-          deleteApp(app.name);
-        };
 
         const iconElement = document.createElement('div');
         iconElement.className = 'app-icon';
 
         const domain = extractDomain(app.url);
-        
         if (domain) {
           const img = document.createElement('img');
           img.src = `https://favicon.im/${domain}`;
           img.alt = app.name;
-
           img.onerror = () => {
             img.style.display = 'none';
             iconElement.textContent = app.name.charAt(0).toUpperCase();
           };
-
           iconElement.appendChild(img);
         } else {
           iconElement.textContent = app.name.charAt(0).toUpperCase();
@@ -928,32 +922,13 @@
         nameElement.className = 'app-name';
         nameElement.textContent = app.name;
 
-        appItem.appendChild(deleteButton);
         appItem.appendChild(iconElement);
         appItem.appendChild(nameElement);
-
-        // 点击事件
         appItem.addEventListener('click', () => {
           window.electronAPI.switchToApp(app.name);
         });
-
         appGrid.appendChild(appItem);
       });
-
-      // 添加"添加应用"按钮
-      const addAppItem = document.createElement('div');
-      addAppItem.className = 'add-app-item';
-
-      const addIcon = document.createElement('div');
-      addIcon.className = 'add-app-icon';
-      addIcon.textContent = '+';
-
-      addAppItem.appendChild(addIcon);
-
-      // 点击事件
-      addAppItem.addEventListener('click', showAddAppForm);
-
-      appGrid.appendChild(addAppItem);
     }
 
     // 显示添加应用表单
@@ -1147,6 +1122,7 @@
       document.getElementById('configProxyUsername').value = currentConfigData.proxy?.username || '';
       document.getElementById('configProxyPassword').value = currentConfigData.proxy?.password || '';
       document.getElementById('configProxyBypass').value = currentConfigData.proxy?.bypassList || 'localhost,127.0.0.1,*.local';
+      document.getElementById('configAppListSource').value = currentConfigData.appListSource || 'https://raw.githubusercontent.com/zzabolazza/ShellPlusPlus/main/apps.json';
 
       
 
@@ -1361,10 +1337,12 @@
             username: document.getElementById('configProxyUsername').value,
             password: document.getElementById('configProxyPassword').value,
             bypassList: document.getElementById('configProxyBypass').value
-                     }
+                     },
+          appListSource: document.getElementById('configAppListSource').value.trim()
         };
 
         await window.electronAPI.updateConfig(newConfig);
+        await window.electronAPI.syncAppList();
         
         // 显示保存成功提示
         const saveBtn = event ? event.target : document.querySelector('.config-btn-primary');

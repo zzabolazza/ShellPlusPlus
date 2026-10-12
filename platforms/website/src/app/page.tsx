@@ -1,108 +1,142 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import AppItem from '@/components/AppItem'
-import AddAppItem from '@/components/AddAppItem'
 
 interface App {
   name: string
   url: string
   icon?: string
+  packageName?: string
 }
 
-// 默认应用列表 - 参考 appManager.js 中的 AI 应用
-const defaultApps: App[] = [
-  { name: "ChatGPT", url: "https://chatgpt.com/", icon: "https://favicon.im/chatgpt.com" },
-  { name: "Perplexity", url: "https://www.perplexity.ai/", icon: "https://favicon.im/www.perplexity.ai" },
-  { name: "Claude", url: "https://claude.ai", icon: "https://favicon.im/claude.ai" },
-  { name: "Grok", url: "https://grok.com", icon: "https://favicon.im/grok.com" },
-  { name: "跃问", url: "https://yuewen.cn", icon: "https://favicon.im/yuewen.cn" },
-  { name: "Kimi", url: "https://kimi.moonshot.cn/", icon: "https://favicon.im/kimi.moonshot.cn" },
-  { name: "天工", url: "https://www.tiangong.cn/", icon: "https://favicon.im/www.tiangong.cn" },
-  { name: "豆包", url: "https://www.doubao.com/chat/", icon: "https://favicon.im/www.doubao.com" },
-  { name: "Mistral", url: "https://chat.mistral.ai/chat", icon: "https://favicon.im/chat.mistral.ai" },
-  { name: "元宝", url: "https://yuanbao.tencent.com", icon: "https://favicon.im/yuanbao.tencent.com" },
-  { name: "通义千问", url: "https://tongyi.aliyun.com", icon: "https://favicon.im/tongyi.aliyun.com" },
-  { name: "Gemini", url: "https://gemini.google.com", icon: "https://favicon.im/gemini.google.com" },
-  { name: "DuckAI", url: "https://duckduckgo.com/?q=DuckDuckGo+AI+Chat&ia=chat&duckai=1", icon: "https://favicon.im/duckduckgo.com" },
-  { name: "ChatGLM", url: "https://chatglm.cn", icon: "https://favicon.im/chatglm.cn" },
-  { name: "海螺AI", url: "https://hailuoai.com/", icon: "https://favicon.im/hailuoai.com" },
-  { name: "Meta AI", url: "https://www.meta.ai/", icon: "https://favicon.im/www.meta.ai" },
-  { name: "Poe", url: "https://www.poe.com/", icon: "https://favicon.im/www.poe.com" },
-  { name: "Deepseek", url: "https://chat.deepseek.com/", icon: "https://favicon.im/chat.deepseek.com" },
-  { name: "文心一言", url: "https://yiyan.baidu.com/", icon: "https://favicon.im/yiyan.baidu.com" },
-  { name: "百度AI", url: "https://chat.baidu.com/", icon: "https://favicon.im/chat.baidu.com" },
-  { name: "Microsoft Copilot", url: "https://copilot.microsoft.com/", icon: "https://favicon.im/copilot.microsoft.com" },
-  { name: "Monica", url: "https://monica.im/", icon: "https://favicon.im/monica.im" },
-  { name: "GitHub Copilot", url: "https://github.com/copilot", icon: "https://favicon.im/github.com" },
-  { name: "Z.ai", url: "https://z.ai", icon: "https://favicon.im/z.ai" },
-  { name: "WPS AI", url: "https://copilot.wps.cn/", icon: "https://favicon.im/copilot.wps.cn" },
-  { name: "Hugging Face", url: "https://huggingface.co/chat/", icon: "https://favicon.im/huggingface.co" },
-  { name: "OpenRouter", url: "https://openrouter.ai/", icon: "https://favicon.im/openrouter.ai" },
-  { name: "YouWare", url: "https://www.youware.com/", icon: "https://favicon.im/www.youware.com" },
-  { name: "Replit", url: "https://replit.com/", icon: "https://favicon.im/replit.com" },
-  { name: "You", url: "https://you.com/?chatMode=default", icon: "https://favicon.im/you.com" },
-  { name: "纳米搜索", url: "https://www.n.cn/", icon: "https://favicon.im/www.n.cn" },
-  { name: "讯飞星火", url: "https://xinghuo.xfyun.cn/", icon: "https://favicon.im/xinghuo.xfyun.cn" },
-  { name: "秘塔AI", url: "https://metaso.cn/", icon: "https://favicon.im/metaso.cn" }
+const DEFAULT_SOURCE_URL = 'https://raw.githubusercontent.com/zzabolazza/ShellPlusPlus/main/apps.json'
+const APPS_CACHE_KEY = 'shellplusplus-apps'
+const SOURCE_CACHE_KEY = 'shellplusplus-app-source'
+
+const bundledApps: App[] = [
+  { name: 'ChatGPT', url: 'https://chatgpt.com/', icon: 'https://favicon.im/chatgpt.com' },
+  { name: 'Perplexity', url: 'https://www.perplexity.ai/', icon: 'https://favicon.im/www.perplexity.ai' }
 ]
 
+function iconFor(url: string) {
+  try {
+    return `https://favicon.im/${new URL(url).hostname}`
+  } catch {
+    return undefined
+  }
+}
+
+function normalizeApps(list: unknown): App[] {
+  if (!Array.isArray(list)) return []
+  return list.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const record = item as { name?: string; url?: string; packageName?: string }
+    if (!record.name || !record.url) return []
+    return [{
+      name: record.name,
+      url: record.url,
+      packageName: record.packageName,
+      icon: iconFor(record.url)
+    }]
+  })
+}
+
+function readCachedApps(): App[] | null {
+  const savedApps = localStorage.getItem(APPS_CACHE_KEY)
+  if (!savedApps) return null
+  try {
+    const apps = normalizeApps(JSON.parse(savedApps))
+    return apps.length > 0 ? apps : null
+  } catch {
+    return null
+  }
+}
+
+async function fetchApps(sourceUrl: string): Promise<App[]> {
+  const separator = sourceUrl.includes('?') ? '&' : '?'
+  const response = await fetch(`${sourceUrl}${separator}t=${Date.now()}`, {
+    cache: 'no-store'
+  })
+  if (!response.ok) {
+    throw new Error(`应用列表请求失败: ${response.status}`)
+  }
+  return normalizeApps(await response.json())
+}
+
 export default function HomePage() {
-  const [apps, setApps] = useState<App[]>([])
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [apps, setApps] = useState<App[]>(bundledApps)
+  const [sourceText, setSourceText] = useState(DEFAULT_SOURCE_URL)
+  const [status, setStatus] = useState('')
 
   useEffect(() => {
-    // 从 localStorage 加载应用列表，如果没有则使用默认列表
-    const savedApps = localStorage.getItem('shellplusplus-apps')
-    if (savedApps) {
-      try {
-        setApps(JSON.parse(savedApps))
-      } catch (error) {
-        console.error('Failed to parse saved apps:', error)
-        setApps(defaultApps)
-      }
-    } else {
-      setApps(defaultApps)
+    const savedSource = localStorage.getItem(SOURCE_CACHE_KEY)?.trim() || DEFAULT_SOURCE_URL
+    setSourceText(savedSource)
+    const cached = readCachedApps()
+    if (cached) setApps(cached)
+
+    let cancelled = false
+    fetchApps(savedSource)
+      .then((remoteApps) => {
+        if (cancelled || remoteApps.length === 0) return
+        setApps(remoteApps)
+        setStatus('')
+        localStorage.setItem(APPS_CACHE_KEY, JSON.stringify(remoteApps))
+      })
+      .catch((error) => {
+        console.error('同步应用列表失败:', error)
+        if (!cancelled) setStatus('同步失败，继续使用上次的列表')
+      })
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
-  const saveApps = (newApps: App[]) => {
-    setApps(newApps)
-    localStorage.setItem('shellplusplus-apps', JSON.stringify(newApps))
-  }
-
-  const addApp = (app: App) => {
-    const newApps = [...apps, app]
-    saveApps(newApps)
-    setShowAddForm(false)
-  }
-
-  const removeApp = (appName: string) => {
-    const newApps = apps.filter(app => app.name !== appName)
-    saveApps(newApps)
-  }
-
-  const openApp = (app: App) => {
-    window.open(app.url, '_blank')
+  const saveSource = async (event: FormEvent) => {
+    event.preventDefault()
+    const nextSource = sourceText.trim()
+    if (!nextSource) return
+    localStorage.setItem(SOURCE_CACHE_KEY, nextSource)
+    setStatus('')
+    try {
+      const remoteApps = await fetchApps(nextSource)
+      if (remoteApps.length === 0) {
+        setStatus('源地址没有返回应用')
+        return
+      }
+      setApps(remoteApps)
+      localStorage.setItem(APPS_CACHE_KEY, JSON.stringify(remoteApps))
+    } catch (error) {
+      console.error('同步应用列表失败:', error)
+      setStatus('同步失败，继续使用上次的列表')
+    }
   }
 
   return (
     <div className="content">
-      <div className="app-grid">
-        {apps.map((app) => (
-          <AppItem
-            key={app.name}
-            app={app}
-            onOpen={() => openApp(app)}
-            onRemove={() => removeApp(app.name)}
+      <div className="home">
+        <div className="app-grid">
+          {apps.map((app) => (
+            <AppItem
+              key={app.packageName || app.name}
+              app={app}
+              onOpen={() => window.open(app.url, '_blank')}
+            />
+          ))}
+        </div>
+        <form className="source-form" onSubmit={saveSource}>
+          <label htmlFor="appListSource">应用列表源</label>
+          <input
+            id="appListSource"
+            type="url"
+            value={sourceText}
+            onChange={(event) => setSourceText(event.target.value)}
+            placeholder={DEFAULT_SOURCE_URL}
           />
-        ))}
-        
-        <AddAppItem
-          onAdd={addApp}
-          showForm={showAddForm}
-          onToggleForm={() => setShowAddForm(!showAddForm)}
-        />
+          <button type="submit">保存</button>
+          {status ? <span className="source-current">{status}</span> : null}
+        </form>
       </div>
     </div>
   )

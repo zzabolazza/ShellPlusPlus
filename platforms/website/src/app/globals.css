@@ -43,6 +43,48 @@ body {
   padding: 20px 0;
 }
 
+.home {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.source-form {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px 12px;
+  align-items: center;
+  width: 100%;
+}
+
+.source-form input {
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.source-form button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.source-current {
+  grid-column: 2 / -1;
+  color: #777;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* 应用图标样式 */
 .app-item {
   display: flex;

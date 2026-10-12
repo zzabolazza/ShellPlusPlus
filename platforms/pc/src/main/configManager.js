@@ -21,7 +21,8 @@ class ConfigManager {
         username: '',
         password: '',
         bypassList: 'localhost,127.0.0.1,*.local'
-      }
+      },
+      appListSource: 'https://raw.githubusercontent.com/zzabolazza/ShellPlusPlus/main/apps.json'
     };
   }
 
@@ -73,7 +74,7 @@ class ConfigManager {
 
   // 批量更新配置
   updateConfig(newConfig) {
-    this.config = { ...this.config, ...newConfig };
+    this.config = { ...this.loadConfig(), ...newConfig };
     this.saveConfig();
     this.applyConfig();
   }

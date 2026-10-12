@@ -30,6 +30,7 @@ let shortcutManager;
 let menuManager;
 let configManager;
 let isInitialized = false;
+let isStarting = false;
 
 // 设置IPC处理程序
 function setupIpcHandlers() {
@@ -159,6 +160,14 @@ function setupIpcHandlers() {
     }
   });
 
+  ipcMain.handle('sync-app-list', async () => {
+    const updated = await appManager.syncFromSource();
+    if (updated) {
+      windowManager.mainWindow?.webContents.send('apps-changed');
+    }
+    return { success: updated, sourceUrl: appManager.getSourceUrl() };
+  });
+
   ipcMain.handle('update-app', (_, appName, newApp) => {
     try {
       appManager.updateApp(appName, newApp);
@@ -184,12 +193,13 @@ function setupIpcHandlers() {
 }
 
 // 初始化应用
-function initializeApp() {
-  if (isInitialized) {
+async function initializeApp() {
+  if (isInitialized || isStarting) {
     electronLog.info('应用已经初始化，跳过重复初始化');
     return;
   }
 
+  isStarting = true;
   electronLog.info('开始初始化应用');
   
   // 首先初始化配置管理器
@@ -202,6 +212,9 @@ function initializeApp() {
 
   // 设置IPC处理程序
   setupIpcHandlers();
+
+  // 先同步应用列表，主窗口第一次渲染就能读到最新结果
+  await appManager.syncFromSource();
 
   // 创建主窗口后再注册快捷键，确保窗口事件能挂上
   windowManager.createMainWindow();
@@ -236,7 +249,7 @@ app.on('window-all-closed', () => {
 
 // 应用激活时（macOS）
 app.on('activate', () => {
-  if (!windowManager.mainWindow) {
+  if (windowManager && !windowManager.mainWindow) {
     windowManager.createMainWindow();
   }
 });
