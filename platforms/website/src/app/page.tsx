@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import AppItem from '@/components/AppItem'
 
 interface App {
@@ -68,6 +68,8 @@ export default function HomePage() {
   const [apps, setApps] = useState<App[]>(bundledApps)
   const [sourceText, setSourceText] = useState(DEFAULT_SOURCE_URL)
   const [status, setStatus] = useState('')
+  const [sourceOpen, setSourceOpen] = useState(false)
+  const sourceAnchorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const savedSource = localStorage.getItem(SOURCE_CACHE_KEY)?.trim() || DEFAULT_SOURCE_URL
@@ -92,6 +94,26 @@ export default function HomePage() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!sourceOpen) return
+
+    const closeOnOutside = (event: MouseEvent) => {
+      if (!sourceAnchorRef.current?.contains(event.target as Node)) {
+        setSourceOpen(false)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSourceOpen(false)
+    }
+
+    document.addEventListener('mousedown', closeOnOutside)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutside)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [sourceOpen])
 
   const saveSource = async (event: FormEvent) => {
     event.preventDefault()
@@ -125,18 +147,33 @@ export default function HomePage() {
             />
           ))}
         </div>
-        <form className="source-form" onSubmit={saveSource}>
-          <label htmlFor="appListSource">应用列表源</label>
-          <input
-            id="appListSource"
-            type="url"
-            value={sourceText}
-            onChange={(event) => setSourceText(event.target.value)}
-            placeholder={DEFAULT_SOURCE_URL}
-          />
-          <button type="submit">保存</button>
-          {status ? <span className="source-current">{status}</span> : null}
-        </form>
+      </div>
+      <div className="source-anchor" ref={sourceAnchorRef}>
+        <button
+          type="button"
+          className="source-toggle"
+          aria-label="设置"
+          aria-expanded={sourceOpen}
+          onClick={() => setSourceOpen((open) => !open)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z" />
+          </svg>
+        </button>
+        {sourceOpen ? (
+          <form className="source-form" onSubmit={saveSource}>
+            <label htmlFor="appListSource">应用列表源</label>
+            <input
+              id="appListSource"
+              type="url"
+              value={sourceText}
+              onChange={(event) => setSourceText(event.target.value)}
+              placeholder={DEFAULT_SOURCE_URL}
+            />
+            <button type="submit">保存</button>
+            {status ? <span className="source-current">{status}</span> : null}
+          </form>
+        ) : null}
       </div>
     </div>
   )
