@@ -225,7 +225,7 @@
     }
 
     .app-item:hover {
-      background-color: #e0e0e0;
+      background-color: var(--app-highlight, #e0e0e0);
       transform: translateY(-2px);
     }
 
@@ -906,9 +906,13 @@
 
         const domain = extractDomain(app.url);
         if (domain) {
+          const iconUrl = `https://favicon.im/${domain}`;
           const img = document.createElement('img');
-          img.src = `https://favicon.im/${domain}`;
+          img.src = iconUrl;
           img.alt = app.name;
+          window.electronAPI.getAppHighlight(iconUrl).then((color) => {
+            if (color) appItem.style.setProperty('--app-highlight', color);
+          });
           img.onerror = () => {
             img.style.display = 'none';
             iconElement.textContent = app.name.charAt(0).toUpperCase();

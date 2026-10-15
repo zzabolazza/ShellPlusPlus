@@ -10,6 +10,7 @@ const AppSwitcher = require('./appSwitcher');
 const ShortcutManager = require('./shortcutManager');
 const MenuManager = require('./menuManager');
 const ConfigManager = require('./configManager');
+const { highlightForIconUrl } = require('./logoColor');
 
 // 配置日志
 electronLog.transports.file.level = 'info';
@@ -53,6 +54,7 @@ function setupIpcHandlers() {
   ipcMain.removeHandler('remove-app');
   ipcMain.removeHandler('update-app');
   ipcMain.removeHandler('get-current-app-name');
+  ipcMain.removeHandler('get-app-highlight');
 
   // 窗口控制
   ipcMain.on('minimize-window', () => {
@@ -80,6 +82,8 @@ function setupIpcHandlers() {
   ipcMain.handle('get-apps', () => {
     return appManager.getApps();
   });
+
+  ipcMain.handle('get-app-highlight', (_, iconUrl) => highlightForIconUrl(iconUrl));
 
   ipcMain.handle('get-open-apps', () => {
     return windowManager.getOpenApps();

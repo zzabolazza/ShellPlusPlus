@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // 应用管理
   getApps: () => ipcRenderer.invoke('get-apps'),
+  getAppHighlight: (iconUrl) => ipcRenderer.invoke('get-app-highlight', iconUrl),
   getOpenApps: () => ipcRenderer.invoke('get-open-apps'),
   switchToApp: (appName) => ipcRenderer.invoke('switch-to-app', appName),
   closeApp: (appName) => ipcRenderer.invoke('close-app', appName),
