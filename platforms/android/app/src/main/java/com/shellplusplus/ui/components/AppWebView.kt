@@ -7,7 +7,10 @@ import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.*
 import android.net.http.SslError
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.Modifier
 import android.util.Log
@@ -29,6 +32,8 @@ fun AppWebView(
     touchEnabled: Boolean = true
 ) {
     var webView by remember { mutableStateOf<WebView?>(null) }
+    val darkTheme = isSystemInDarkTheme()
+    val webViewBackground = MaterialTheme.colorScheme.background.toArgb()
     val currentOnTwoFingerTouch by rememberUpdatedState(onTwoFingerTouch)
     val currentOnShowSwitcher by rememberUpdatedState(onShowSwitcher)
     val currentOnTwoFingerSwipeDown by rememberUpdatedState(onTwoFingerSwipeDown)
@@ -182,6 +187,8 @@ fun AppWebView(
                         savePassword = true
                     }
                 }
+                applyWebViewDarkTheme(settings, darkTheme)
+                setBackgroundColor(webViewBackground)
                 
                 // 启用第三方Cookie（使用新的API）
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
@@ -276,12 +283,20 @@ fun AppWebView(
             }
         },
         update = { webViewInstance ->
+            val passThrough = webViewInstance as PassThroughWebView
+            applyWebViewDarkTheme(webViewInstance.settings, darkTheme)
+            webViewInstance.setBackgroundColor(webViewBackground)
+            val themeChanged = passThrough.appliedDarkTheme != null &&
+                passThrough.appliedDarkTheme != darkTheme
+            passThrough.appliedDarkTheme = darkTheme
             if (webViewInstance.tag != url) {
                 webViewInstance.tag = url
                 webViewInstance.loadUrl(url)
+            } else if (themeChanged) {
+                webViewInstance.reload()
             }
             webViewInstance.visibility = if (active) android.view.View.VISIBLE else android.view.View.INVISIBLE
-            (webViewInstance as PassThroughWebView).touchEnabled = currentTouchEnabled
+            passThrough.touchEnabled = currentTouchEnabled
             webView = webViewInstance
         },
         onRelease = { it.destroy() },
@@ -291,6 +306,7 @@ fun AppWebView(
 
 private class PassThroughWebView(context: Context) : WebView(context) {
     var touchEnabled: Boolean = true
+    var appliedDarkTheme: Boolean? = null
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         if (!touchEnabled) return false
