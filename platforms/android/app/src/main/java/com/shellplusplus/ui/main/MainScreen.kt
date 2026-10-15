@@ -89,6 +89,8 @@ fun MainScreen(
         hideTopBarAfterDelay()
     }
 
+    val browsing = selectedApp != null && !showingLauncher
+
     Scaffold(
         topBar = {
             if (isTopBarVisible) {
@@ -96,7 +98,11 @@ fun MainScreen(
                     TopAppBar(
                         title = {
                             Text(
-                                text = currentPageTitle ?: selectedApp?.name ?: "Shell++",
+                                text = if (browsing) {
+                                    currentPageTitle ?: selectedApp?.name ?: "Shell++"
+                                } else {
+                                    "Shell++"
+                                },
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -173,7 +179,6 @@ fun MainScreen(
                     }
                 }
         ) {
-            val browsing = selectedApp != null && !showingLauncher
             if (selectedApp != null) {
                 openedApps.forEach { app ->
                     key(app.packageName) {
