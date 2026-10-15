@@ -479,10 +479,7 @@ fun AppItem(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surface),
+            modifier = Modifier.size(64.dp),
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(
