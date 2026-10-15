@@ -98,6 +98,7 @@ class WindowManager {
     });
     this.mainWindow.on('focus', () => {
       this.syncViewChrome();
+      this.focusActiveView();
     });
 
     // 窗口关闭时清理资源
@@ -244,7 +245,13 @@ class WindowManager {
     this.suspendedAppName = null;
 
     this.emitShellState();
+    this.focusActiveView();
     electronLog.info(`已激活视图: ${name}`);
+  }
+
+  focusActiveView() {
+    if (!this.activeView || this.activeView.webContents.isDestroyed()) return;
+    this.activeView.webContents.focus();
   }
 
   getActiveAppName() {

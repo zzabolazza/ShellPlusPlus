@@ -38,6 +38,7 @@ coverage/
 dist/
 out/
 release/
+platforms/pc/.dev-app/
 
 # Next.js
 .next/

@@ -1,7 +1,11 @@
 // 主入口文件
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, ipcMain, session, nativeImage } = require('electron');
 const path = require('path');
 const electronLog = require('electron-log');
+
+// 只影响 Electron 内部名称（关于、Quit 文案）。菜单栏上苹果图标旁的名字来自
+// Electron.app 的 Info.plist，由 scripts/prepare-macos-dev.js 在启动前写入。
+app.setName('Shell++');
 
 // 导入自定义模块
 const AppManager = require('./appManager');
@@ -216,6 +220,7 @@ async function initializeApp() {
 
   // 设置IPC处理程序
   setupIpcHandlers();
+  allowClipboardPermissions();
 
   // 先同步应用列表，主窗口第一次渲染就能读到最新结果
   await appManager.syncFromSource();
@@ -238,9 +243,48 @@ async function initializeApp() {
   electronLog.info('应用初始化完成');
 }
 
+const DOCK_ICON_PATH = path.join(__dirname, '../assets/icons/icon.png');
+// 与 prepare-macos-dev.js 相同：1024 画布中的 824 图标网格。
+const DOCK_CONTENT_RATIO = 824 / 1024;
+
+function paddedDockIcon(source) {
+  const { width, height } = source.getSize();
+  const contentWidth = Math.max(1, Math.round(width * DOCK_CONTENT_RATIO));
+  const contentHeight = Math.max(1, Math.round(height * DOCK_CONTENT_RATIO));
+  const resized = source.resize({ width: contentWidth, height: contentHeight, quality: 'best' });
+  const bitmap = resized.toBitmap();
+  const offsetX = Math.floor((width - contentWidth) / 2);
+  const offsetY = Math.floor((height - contentHeight) / 2);
+  const canvas = Buffer.alloc(width * height * 4);
+  const rowBytes = contentWidth * 4;
+  for (let y = 0; y < contentHeight; y += 1) {
+    bitmap.copy(
+      canvas,
+      ((y + offsetY) * width + offsetX) * 4,
+      y * rowBytes,
+      (y + 1) * rowBytes
+    );
+  }
+  return nativeImage.createFromBitmap(canvas, { width, height, scaleFactor: 1 });
+}
+
+// macOS 会缓存 Electron.app 里的 icns，所以启动后再设一次贝壳图。
+// 留白后 Dock 不会把整张图铺满格子。
+function setDockIcon() {
+  if (process.platform !== 'darwin' || !app.dock) return;
+
+  const image = nativeImage.createFromPath(DOCK_ICON_PATH);
+  if (image.isEmpty()) {
+    electronLog.error('无法加载 Dock 图标:', DOCK_ICON_PATH);
+    return;
+  }
+  app.dock.setIcon(paddedDockIcon(image));
+}
+
 // 应用准备就绪
 app.whenReady().then(() => {
   electronLog.info('应用已准备就绪');
+  setDockIcon();
   initializeApp();
 });
 
@@ -256,6 +300,36 @@ app.on('activate', () => {
   if (windowManager && !windowManager.mainWindow) {
     windowManager.createMainWindow();
   }
+});
+
+const CLIPBOARD_PERMISSIONS = [
+  'clipboard-read',
+  'clipboard-sanitized-write',
+  'deprecated-sync-clipboard-read'
+];
+
+function allowClipboardPermissions() {
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(CLIPBOARD_PERMISSIONS.includes(permission));
+  });
+  // navigator.clipboard 还会走 check，而不只是 request。
+  session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
+    return CLIPBOARD_PERMISSIONS.includes(permission);
+  });
+}
+
+// 菜单 role: 'quit'、Ctrl/Cmd+Q 和关闭最后一个窗口都会走到 app.quit()。
+function quitApplication() {
+  if (!windowManager) return;
+  try {
+    windowManager.closeAllApps();
+  } catch (error) {
+    electronLog.error('退出前关闭应用失败:', error);
+  }
+}
+
+app.on('before-quit', () => {
+  quitApplication();
 });
 
 // 应用退出前

@@ -1,11 +1,13 @@
 {
   "name": "Shell++",
+  "productName": "Shell++",
   "version": "1.0.0",
   "main": "src/main/index.js",
   "author": "ooooops.chan <ooooops.chan@gmail.com>",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron .",
+    "prestart": "node scripts/prepare-macos-dev.js",
+    "start": "node scripts/start-dev.js",
     "package-win": "electron-packager . Shell++ --platform=win32 --arch=x64 --out=dist --overwrite --icon=src/assets/icons/icon.ico",
     "package-mac": "electron-packager . Shell++ --platform=darwin --arch=x64 --out=dist --overwrite --icon=src/assets/icons/icon.icns",
     "package-linux": "electron-packager . Shell++ --platform=linux --arch=x64 --out=dist --overwrite --icon=src/assets/icons/icon.png",

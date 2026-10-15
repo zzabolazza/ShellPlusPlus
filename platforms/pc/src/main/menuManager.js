@@ -35,7 +35,38 @@ class MenuManager {
   }
 
   createMenu() {
-    const template = [
+    const template = [];
+
+    if (process.platform === 'darwin') {
+      template.push({
+        label: app.name,
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { label: 'Quit Shell++', role: 'quit' }
+        ]
+      });
+    } else {
+      template.push({
+        label: 'File',
+        submenu: [
+          {
+            label: 'Quit Shell++',
+            accelerator: 'Ctrl+Q',
+            role: 'quit'
+          }
+        ]
+      });
+    }
+
+    template.push(
+      { role: 'editMenu' },
       {
         label: '设置',
         submenu: [
@@ -60,7 +91,7 @@ class MenuManager {
           }
         ]
       }
-    ];
+    );
 
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
