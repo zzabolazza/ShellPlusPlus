@@ -1,20 +1,34 @@
 package com.shellplusplus.ui.components
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.ClipData
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.MediaStore
 import android.view.MotionEvent
 import android.view.ViewGroup
+import android.webkit.PermissionRequest
+import android.webkit.ValueCallback
 import android.webkit.WebSettings
 import android.webkit.*
 import android.net.http.SslError
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.Modifier
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import java.io.File
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -39,7 +53,43 @@ fun AppWebView(
     val currentOnTwoFingerSwipeDown by rememberUpdatedState(onTwoFingerSwipeDown)
     val currentOnPinchIn by rememberUpdatedState(onPinchIn)
     val currentTouchEnabled by rememberUpdatedState(touchEnabled)
-    
+    val context = LocalContext.current
+    val chooserBridge = remember { WebChooserBridge() }
+
+    val fileChooserLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        deliverFileChooserResult(context, chooserBridge, result.resultCode, result.data)
+    }
+    val chooserCameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val continuation = chooserBridge.chooserCameraContinuation
+        chooserBridge.chooserCameraContinuation = null
+        continuation?.invoke(granted)
+    }
+    val webCameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val pending = chooserBridge.pendingWebPermission
+        chooserBridge.pendingWebPermission = null
+        if (pending != null) {
+            finishWebPermission(context, pending, granted)
+        }
+    }
+    SideEffect {
+        chooserBridge.launchChooser = { intent -> fileChooserLauncher.launch(intent) }
+        chooserBridge.askChooserCamera = { continuation ->
+            chooserBridge.chooserCameraContinuation = continuation
+            chooserCameraLauncher.launch(android.Manifest.permission.CAMERA)
+        }
+        chooserBridge.askWebCamera = { request ->
+            chooserBridge.pendingWebPermission?.deny()
+            chooserBridge.pendingWebPermission = request
+            webCameraLauncher.launch(android.Manifest.permission.CAMERA)
+        }
+    }
+
     // 处理返回键
     BackHandler(enabled = active) {
         webView?.let { view ->
@@ -117,10 +167,18 @@ fun AppWebView(
                     }
                 }
                 
-                // 设置 WebChromeClient 以处理权限请求和标题变化
+                // 设置 WebChromeClient 以处理权限请求、文件选择和标题变化
                 webChromeClient = object : WebChromeClient() {
                     override fun onPermissionRequest(request: PermissionRequest) {
-                        request.grant(request.resources)
+                        handleWebPermissionRequest(ctx, chooserBridge, request)
+                    }
+
+                    override fun onShowFileChooser(
+                        webView: WebView?,
+                        filePathCallback: ValueCallback<Array<Uri>>?,
+                        fileChooserParams: FileChooserParams?
+                    ): Boolean {
+                        return showWebFileChooser(ctx, chooserBridge, filePathCallback, fileChooserParams)
                     }
                     
                     override fun onReceivedTitle(view: WebView?, title: String?) {
@@ -299,7 +357,13 @@ fun AppWebView(
             passThrough.touchEnabled = currentTouchEnabled
             webView = webViewInstance
         },
-        onRelease = { it.destroy() },
+        onRelease = {
+            chooserBridge.fileCallback?.onReceiveValue(null)
+            chooserBridge.fileCallback = null
+            chooserBridge.pendingWebPermission?.deny()
+            chooserBridge.pendingWebPermission = null
+            it.destroy()
+        },
         modifier = modifier
     )
 }
@@ -312,4 +376,224 @@ private class PassThroughWebView(context: Context) : WebView(context) {
         if (!touchEnabled) return false
         return super.dispatchTouchEvent(ev)
     }
+}
+
+private class WebChooserBridge {
+    var fileCallback: ValueCallback<Array<Uri>>? = null
+    var cameraUris: List<Uri> = emptyList()
+    var launchChooser: ((Intent) -> Unit)? = null
+    var askChooserCamera: (((Boolean) -> Unit) -> Unit)? = null
+    var chooserCameraContinuation: ((Boolean) -> Unit)? = null
+    var askWebCamera: ((PermissionRequest) -> Unit)? = null
+    var pendingWebPermission: PermissionRequest? = null
+}
+
+private fun handleWebPermissionRequest(
+    context: Context,
+    bridge: WebChooserBridge,
+    request: PermissionRequest
+) {
+    val wantsVideo = PermissionRequest.RESOURCE_VIDEO_CAPTURE in request.resources
+    if (!wantsVideo) {
+        finishWebPermission(context, request, cameraGranted = false)
+        return
+    }
+    if (hasPermission(context, android.Manifest.permission.CAMERA)) {
+        finishWebPermission(context, request, cameraGranted = true)
+        return
+    }
+    val ask = bridge.askWebCamera
+    if (ask == null) {
+        finishWebPermission(context, request, cameraGranted = false)
+        return
+    }
+    ask(request)
+}
+
+private fun finishWebPermission(context: Context, request: PermissionRequest, cameraGranted: Boolean) {
+    val granted = request.resources.filter { resource ->
+        when (resource) {
+            PermissionRequest.RESOURCE_VIDEO_CAPTURE -> cameraGranted
+            PermissionRequest.RESOURCE_AUDIO_CAPTURE ->
+                hasPermission(context, android.Manifest.permission.RECORD_AUDIO)
+            else -> true
+        }
+    }
+    if (granted.isEmpty()) {
+        request.deny()
+    } else {
+        request.grant(granted.toTypedArray())
+    }
+}
+
+private fun showWebFileChooser(
+    context: Context,
+    bridge: WebChooserBridge,
+    filePathCallback: ValueCallback<Array<Uri>>?,
+    fileChooserParams: WebChromeClient.FileChooserParams?
+): Boolean {
+    bridge.fileCallback?.onReceiveValue(null)
+    bridge.fileCallback = filePathCallback
+    bridge.cameraUris = emptyList()
+
+    val acceptTypes = fileChooserParams?.acceptTypes
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }
+        .orEmpty()
+    val wantsImage = acceptTypes.any { it.startsWith("image", ignoreCase = true) }
+    val wantsVideo = acceptTypes.any { it.startsWith("video", ignoreCase = true) }
+    val capture = fileChooserParams?.isCaptureEnabled == true
+    val includeImageCamera = wantsImage || (capture && !wantsVideo)
+    val includeVideoCamera = wantsVideo
+    val wantsCamera = (includeImageCamera || includeVideoCamera) &&
+        context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+
+    fun openChooser(withCamera: Boolean) {
+        val chooser = buildFileChooserIntent(
+            context = context,
+            acceptTypes = acceptTypes,
+            allowMultiple = fileChooserParams?.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE,
+            includeImageCamera = withCamera && includeImageCamera,
+            includeVideoCamera = withCamera && includeVideoCamera
+        )
+        bridge.cameraUris = chooser.second
+        val launch = bridge.launchChooser
+        if (launch == null) {
+            bridge.fileCallback?.onReceiveValue(null)
+            bridge.fileCallback = null
+            bridge.cameraUris = emptyList()
+            return
+        }
+        try {
+            launch(chooser.first)
+        } catch (error: Exception) {
+            Log.e("AppWebView", "无法打开文件选择器", error)
+            bridge.fileCallback?.onReceiveValue(null)
+            bridge.fileCallback = null
+            bridge.cameraUris = emptyList()
+        }
+    }
+
+    if (wantsCamera && !hasPermission(context, android.Manifest.permission.CAMERA)) {
+        val ask = bridge.askChooserCamera
+        if (ask == null) {
+            openChooser(withCamera = false)
+        } else {
+            ask { granted -> openChooser(withCamera = granted) }
+        }
+    } else {
+        openChooser(withCamera = wantsCamera)
+    }
+    return true
+}
+
+private fun buildFileChooserIntent(
+    context: Context,
+    acceptTypes: List<String>,
+    allowMultiple: Boolean,
+    includeImageCamera: Boolean,
+    includeVideoCamera: Boolean
+): Pair<Intent, List<Uri>> {
+    val mimeTypes = acceptTypes.mapNotNull { normalizeMime(it) }
+    val content = Intent(Intent.ACTION_GET_CONTENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = when {
+            mimeTypes.size == 1 -> mimeTypes[0]
+            else -> "*/*"
+        }
+        if (mimeTypes.size > 1) {
+            putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes.toTypedArray())
+        }
+        if (allowMultiple) {
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+    }
+    val cameraIntents = mutableListOf<Intent>()
+    val cameraUris = mutableListOf<Uri>()
+    if (includeImageCamera) {
+        createCaptureIntent(context, image = true)?.let { (intent, uri) ->
+            cameraIntents += intent
+            cameraUris += uri
+        }
+    }
+    if (includeVideoCamera) {
+        createCaptureIntent(context, image = false)?.let { (intent, uri) ->
+            cameraIntents += intent
+            cameraUris += uri
+        }
+    }
+    val chooser = Intent.createChooser(content, null)
+    if (cameraIntents.isNotEmpty()) {
+        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, cameraIntents.toTypedArray())
+    }
+    return chooser to cameraUris
+}
+
+private fun createCaptureIntent(context: Context, image: Boolean): Pair<Intent, Uri>? {
+    val extension = if (image) "jpg" else "mp4"
+    val directory = File(context.cacheDir, "capture")
+    if (!directory.exists() && !directory.mkdirs()) return null
+    val file = File(directory, "${System.currentTimeMillis()}.$extension")
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    val action = if (image) MediaStore.ACTION_IMAGE_CAPTURE else MediaStore.ACTION_VIDEO_CAPTURE
+    val intent = Intent(action).apply {
+        putExtra(MediaStore.EXTRA_OUTPUT, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        clipData = ClipData.newUri(context.contentResolver, "capture", uri)
+    }
+    val resolved = context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+    if (resolved.isEmpty()) return null
+    val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+    resolved.forEach { info ->
+        context.grantUriPermission(info.activityInfo.packageName, uri, flags)
+    }
+    return intent to uri
+}
+
+private fun deliverFileChooserResult(
+    context: Context,
+    bridge: WebChooserBridge,
+    resultCode: Int,
+    data: Intent?
+) {
+    val callback = bridge.fileCallback
+    val cameraUris = bridge.cameraUris
+    bridge.fileCallback = null
+    bridge.cameraUris = emptyList()
+    if (callback == null) return
+    if (resultCode != Activity.RESULT_OK) {
+        callback.onReceiveValue(null)
+        return
+    }
+    val picked = mutableListOf<Uri>()
+    data?.clipData?.let { clip ->
+        for (index in 0 until clip.itemCount) {
+            clip.getItemAt(index)?.uri?.let { picked += it }
+        }
+    }
+    data?.data?.let { uri ->
+        if (uri !in picked) picked += uri
+    }
+    if (picked.isEmpty()) {
+        cameraUris.filter { uriHasContent(context, it) }.forEach { picked += it }
+    }
+    callback.onReceiveValue(picked.takeIf { it.isNotEmpty() }?.toTypedArray())
+}
+
+private fun normalizeMime(raw: String): String? {
+    val value = raw.trim()
+    if (!value.contains("/")) return null
+    return value
+}
+
+private fun uriHasContent(context: Context, uri: Uri): Boolean {
+    return try {
+        context.contentResolver.openFileDescriptor(uri, "r")?.use { it.statSize > 0L } == true
+    } catch (error: Exception) {
+        false
+    }
+}
+
+private fun hasPermission(context: Context, permission: String): Boolean {
+    return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 }
